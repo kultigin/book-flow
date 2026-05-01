@@ -9,7 +9,6 @@ export interface AccountHolder {
   email: string
   name: string
   role: 'admin' | 'staff'
-  is_active: boolean
   created_at: Date
 }
 
@@ -41,16 +40,16 @@ export async function verifyPassword(password: string, hash: string): Promise<bo
 }
 
 export async function createSession(accountHolderId: string): Promise<string> {
-  const sessionId = generateToken(64)
+  const sessionToken = generateToken(64)
   const expiresAt = new Date(Date.now() + SESSION_DURATION_MS)
   
   await sql`
-    INSERT INTO sessions (id, account_holder_id, expires_at)
-    VALUES (${sessionId}, ${accountHolderId}, ${expiresAt.toISOString()})
+    INSERT INTO sessions (token, account_holder_id, expires_at)
+    VALUES (${sessionToken}, ${accountHolderId}, ${expiresAt.toISOString()})
   `
   
   const cookieStore = await cookies()
-  cookieStore.set('session_id', sessionId, {
+  cookieStore.set('session_id', sessionToken, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
@@ -58,7 +57,7 @@ export async function createSession(accountHolderId: string): Promise<string> {
     path: '/'
   })
   
-  return sessionId
+  return sessionToken
 }
 
 export async function getSession(): Promise<{ session: Session; accountHolder: AccountHolder } | null> {
@@ -69,20 +68,18 @@ export async function getSession(): Promise<{ session: Session; accountHolder: A
   
   const result = await sql`
     SELECT 
-      s.id as session_id,
+      s.token as session_token,
       s.expires_at,
       ah.id,
       ah.business_id,
       ah.email,
       ah.name,
       ah.role,
-      ah.is_active,
       ah.created_at
     FROM sessions s
     JOIN account_holders ah ON s.account_holder_id = ah.id
-    WHERE s.id = ${sessionId}
+    WHERE s.token = ${sessionId}
       AND s.expires_at > NOW()
-      AND ah.is_active = true
   `
   
   if (result.length === 0) return null
@@ -90,7 +87,7 @@ export async function getSession(): Promise<{ session: Session; accountHolder: A
   const row = result[0]
   return {
     session: {
-      id: row.session_id,
+      id: row.session_token,
       account_holder_id: row.id,
       expires_at: row.expires_at
     },
@@ -100,7 +97,6 @@ export async function getSession(): Promise<{ session: Session; accountHolder: A
       email: row.email,
       name: row.name,
       role: row.role,
-      is_active: row.is_active,
       created_at: row.created_at
     }
   }
@@ -127,7 +123,7 @@ export async function logout() {
   const sessionId = cookieStore.get('session_id')?.value
   
   if (sessionId) {
-    await sql`DELETE FROM sessions WHERE id = ${sessionId}`
+    await sql`DELETE FROM sessions WHERE token = ${sessionId}`
   }
   
   cookieStore.delete('session_id')
@@ -136,7 +132,7 @@ export async function logout() {
 // Magic link functions
 export async function createMagicLinkToken(email: string): Promise<string | null> {
   const result = await sql`
-    SELECT id FROM account_holders WHERE email = ${email} AND is_active = true
+    SELECT id FROM account_holders WHERE email = ${email}
   `
   
   if (result.length === 0) return null
@@ -175,7 +171,7 @@ export async function verifyMagicLinkToken(token: string): Promise<string | null
 export async function loginWithPassword(email: string, password: string): Promise<{ success: boolean; error?: string }> {
   const result = await sql`
     SELECT id, password_hash FROM account_holders 
-    WHERE email = ${email} AND is_active = true
+    WHERE email = ${email}
   `
   
   if (result.length === 0) {
@@ -201,7 +197,7 @@ export async function loginWithPassword(email: string, password: string): Promis
 // Get business info
 export async function getBusinessBySlug(slug: string) {
   const result = await sql`
-    SELECT * FROM businesses WHERE slug = ${slug} AND is_active = true
+    SELECT * FROM businesses WHERE slug = ${slug}
   `
   return result[0] || null
 }
