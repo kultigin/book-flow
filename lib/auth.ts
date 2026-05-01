@@ -169,22 +169,31 @@ export async function verifyMagicLinkToken(token: string): Promise<string | null
 
 // Login with email and password
 export async function loginWithPassword(email: string, password: string): Promise<{ success: boolean; error?: string }> {
+  console.log('[v0] loginWithPassword called with email:', email)
+  
   const result = await sql`
     SELECT id, password_hash FROM account_holders 
     WHERE email = ${email}
   `
   
+  console.log('[v0] Query result length:', result.length)
+  
   if (result.length === 0) {
+    console.log('[v0] No account found for email:', email)
     return { success: false, error: 'Invalid email or password' }
   }
   
   const accountHolder = result[0]
+  console.log('[v0] Account found, id:', accountHolder.id)
+  console.log('[v0] Password hash exists:', !!accountHolder.password_hash)
+  console.log('[v0] Password hash (first 20 chars):', accountHolder.password_hash?.substring(0, 20))
   
   if (!accountHolder.password_hash) {
     return { success: false, error: 'Please use magic link to login' }
   }
   
   const isValid = await verifyPassword(password, accountHolder.password_hash)
+  console.log('[v0] Password verification result:', isValid)
   
   if (!isValid) {
     return { success: false, error: 'Invalid email or password' }
