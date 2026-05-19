@@ -3,7 +3,6 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import type { AccountHolder } from '@/lib/auth'
 import {
   Calendar,
   Clock,
@@ -15,7 +14,8 @@ import {
 } from 'lucide-react'
 
 interface MobileSidebarProps {
-  accountHolder: AccountHolder
+  name: string
+  role: 'admin' | 'staff'
 }
 
 const navigation = [
