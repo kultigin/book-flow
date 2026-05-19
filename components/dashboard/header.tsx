@@ -20,7 +20,7 @@ interface DashboardHeaderProps {
   role: 'admin' | 'staff'
 }
 
-export function DashboardHeader({ name,email }: DashboardHeaderProps) {
+export function DashboardHeader({ name,email,role }: DashboardHeaderProps) {
   const router = useRouter()
   const [isLoggingOut, setIsLoggingOut] = useState(false)
 
@@ -48,7 +48,7 @@ export function DashboardHeader({ name,email }: DashboardHeaderProps) {
             </Button>
           </SheetTrigger>
           <SheetContent side="left" className="w-64 p-0">
-            <MobileSidebar accountHolder={accountHolder} />
+            <MobileSidebar name={name} role={role} />
           </SheetContent>
         </Sheet>
       </div>
