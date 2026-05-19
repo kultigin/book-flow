@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Spinner } from '@/components/ui/spinner'
@@ -10,7 +10,7 @@ import Link from 'next/link'
 
 export const dynamic = 'force-dynamic'
 
-export default function MagicLinkPage() {
+function MagicLinkVerifier() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const token = searchParams.get('token')
@@ -55,6 +55,38 @@ export default function MagicLinkPage() {
   }, [token, router])
 
   return (
+    <CardContent className="flex flex-col items-center py-8">
+      {status === 'loading' && (
+        <>
+          <Spinner className="h-12 w-12 mb-4" />
+          <p className="text-muted-foreground">Verificando...</p>
+        </>
+      )}
+
+      {status === 'success' && (
+        <>
+          <CheckCircle className="h-12 w-12 text-green-500 mb-4" />
+          <p className="font-medium">Acceso verificado</p>
+          <p className="text-muted-foreground text-sm">Redirigiendo al panel...</p>
+        </>
+      )}
+
+      {status === 'error' && (
+        <>
+          <XCircle className="h-12 w-12 text-destructive mb-4" />
+          <p className="font-medium mb-2">Error de verificacion</p>
+          <p className="text-muted-foreground text-sm mb-4">{error}</p>
+          <Button asChild>
+            <Link href="/login">Volver al inicio de sesion</Link>
+          </Button>
+        </>
+      )}
+    </CardContent>
+  )
+}
+
+export default function MagicLinkPage() {
+  return (
     <div className="min-h-screen flex items-center justify-center bg-muted/30 px-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
@@ -63,33 +95,14 @@ export default function MagicLinkPage() {
             Estamos verificando tu enlace de acceso
           </CardDescription>
         </CardHeader>
-        <CardContent className="flex flex-col items-center py-8">
-          {status === 'loading' && (
-            <>
-              <Spinner className="h-12 w-12 mb-4" />
-              <p className="text-muted-foreground">Verificando...</p>
-            </>
-          )}
-
-          {status === 'success' && (
-            <>
-              <CheckCircle className="h-12 w-12 text-green-500 mb-4" />
-              <p className="font-medium">Acceso verificado</p>
-              <p className="text-muted-foreground text-sm">Redirigiendo al panel...</p>
-            </>
-          )}
-
-          {status === 'error' && (
-            <>
-              <XCircle className="h-12 w-12 text-destructive mb-4" />
-              <p className="font-medium mb-2">Error de verificacion</p>
-              <p className="text-muted-foreground text-sm mb-4">{error}</p>
-              <Button asChild>
-                <Link href="/login">Volver al inicio de sesion</Link>
-              </Button>
-            </>
-          )}
-        </CardContent>
+        <Suspense fallback={
+          <CardContent className="flex flex-col items-center py-8">
+            <Spinner className="h-12 w-12 mb-4" />
+            <p className="text-muted-foreground">Cargando...</p>
+          </CardContent>
+        }>
+          <MagicLinkVerifier />
+        </Suspense>
       </Card>
     </div>
   )
