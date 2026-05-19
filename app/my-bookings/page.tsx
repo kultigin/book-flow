@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { Empty } from '@/components/ui/empty'
+import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription } from '@/components/ui/empty'
 import { Spinner } from '@/components/ui/spinner'
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field'
 import {
@@ -267,11 +267,15 @@ function MyBookingsContent() {
                 <Spinner className="h-8 w-8" />
               </div>
             ) : data?.bookings?.length === 0 ? (
-              <Empty
-                icon={Calendar}
-                title="Sin reservas"
-                description="No tienes reservas activas"
-              />
+              <Empty>
+                <EmptyHeader>
+                  <EmptyMedia variant="icon">
+                    <Calendar className="h-6 w-6" />
+                  </EmptyMedia>
+                  <EmptyTitle>Sin reservas</EmptyTitle>
+                  <EmptyDescription>No tienes reservas activas</EmptyDescription>
+                </EmptyHeader>
+              </Empty>
             ) : (
               <div className="space-y-4">
                 <div className="flex items-center justify-between mb-4">

@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
-import { Empty } from '@/components/ui/empty'
+import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription } from '@/components/ui/empty'
 import { cn } from '@/lib/utils'
 import { Calendar, Check, Clock, Phone, User, ArrowLeft } from 'lucide-react'
 
@@ -231,11 +231,15 @@ export function PublicBookingForm({ businessId, businessName, businessSlug }: Pu
                 <Spinner className="h-8 w-8" />
               </div>
             ) : slotsData?.slots?.length === 0 ? (
-              <Empty
-                icon={Clock}
-                title="Sin horarios disponibles"
-                description={slotsData?.message || 'No hay horarios disponibles para esta fecha'}
-              />
+              <Empty>
+                <EmptyHeader>
+                  <EmptyMedia variant="icon">
+                    <Clock className="h-6 w-6" />
+                  </EmptyMedia>
+                  <EmptyTitle>Sin horarios disponibles</EmptyTitle>
+                  <EmptyDescription>{slotsData?.message || 'No hay horarios disponibles para esta fecha'}</EmptyDescription>
+                </EmptyHeader>
+              </Empty>
             ) : (
               <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
                 {slotsData?.slots?.filter((s: { available: boolean }) => s.available).map((slot: { time: string }) => (

@@ -56,11 +56,17 @@ export function ClientsList({ clients }: ClientsListProps) {
         </div>
 
         {filteredClients.length === 0 ? (
-          <Empty
-            icon={Users}
-            title="Sin clientes"
-            description={search ? 'No se encontraron clientes con ese criterio' : 'No hay clientes registrados'}
-          />
+          <Empty>
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <Users className="h-6 w-6" />
+              </EmptyMedia>
+              <EmptyTitle>Sin clientes</EmptyTitle>
+              <EmptyDescription>
+                {search ? 'No se encontraron clientes con ese criterio' : 'No hay clientes registrados'}
+              </EmptyDescription>
+            </EmptyHeader>
+          </Empty>
         ) : (
           <div className="space-y-3">
             {filteredClients.map((client) => (

@@ -1,4 +1,5 @@
 // Dashboard page - main entry point
+// Force recompile: 2026-05-19T20:35
 import { requireAuth, getBusinessById } from '@/lib/auth'
 import { sql } from '@/lib/db'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
