@@ -3,7 +3,6 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import type { AccountHolder } from '@/lib/auth'
 import {
   Calendar,
   Clock,
@@ -16,7 +15,6 @@ import {
 
 interface DashboardSidebarProps {
   name: string
-  email: string
   role : 'admin' | 'staff'
 }
 
@@ -33,7 +31,7 @@ const adminNavigation = [
   { name: 'Configuracion', href: '/dashboard/settings', icon: Settings },
 ]
 
-export function DashboardSidebar({ name,email,role }: DashboardSidebarProps) {
+export function DashboardSidebar({ name,role }: DashboardSidebarProps) {
   const pathname = usePathname()
 
   return (
