@@ -17,7 +17,7 @@ import { MobileSidebar } from './mobile-sidebar'
 interface DashboardHeaderProps {
   name: string
   email: string
-  role: 'admin' | "staff'
+  role: 'admin' | 'staff'
 }
 
 export function DashboardHeader({ name,email }: DashboardHeaderProps) {
