@@ -11,7 +11,7 @@ async function getBookings(businessId: string) {
            ah.name as created_by_name
     FROM bookings b
     JOIN clients c ON b.client_id = c.id
-    LEFT JOIN account_holders ah ON b.created_by = ah.id
+    LEFT JOIN account_holders ah ON b.created_by_account_holder_id = ah.id
     WHERE b.business_id = ${businessId}
     ORDER BY b.date DESC, b.start_time DESC
     LIMIT 50
