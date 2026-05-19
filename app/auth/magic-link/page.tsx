@@ -8,8 +8,6 @@ import { CheckCircle, XCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 
-export const dynamic = 'force-dynamic'
-
 export default function MagicLinkPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
