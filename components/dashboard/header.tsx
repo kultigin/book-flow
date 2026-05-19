@@ -9,17 +9,18 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import type { AccountHolder } from '@/lib/auth'
 import { Menu, LogOut, User, Bell } from 'lucide-react'
 import { useState } from 'react'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
 import { MobileSidebar } from './mobile-sidebar'
 
 interface DashboardHeaderProps {
-  accountHolder: AccountHolder
+  name: string
+  email: string
+  role: 'admin' | "staff'
 }
 
-export function DashboardHeader({ accountHolder }: DashboardHeaderProps) {
+export function DashboardHeader({ name,email }: DashboardHeaderProps) {
   const router = useRouter()
   const [isLoggingOut, setIsLoggingOut] = useState(false)
 
@@ -62,15 +63,15 @@ export function DashboardHeader({ accountHolder }: DashboardHeaderProps) {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="flex items-center gap-2">
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground text-sm font-medium">
-                {accountHolder.name.charAt(0).toUpperCase()}
+                {name.charAt(0).toUpperCase()}
               </div>
-              <span className="hidden sm:inline-block">{accountHolder.name}</span>
+              <span className="hidden sm:inline-block">{name}</span>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
             <div className="px-2 py-1.5">
-              <p className="text-sm font-medium">{accountHolder.name}</p>
-              <p className="text-xs text-muted-foreground">{accountHolder.email}</p>
+              <p className="text-sm font-medium">{name}</p>
+              <p className="text-xs text-muted-foreground">{email}</p>
             </div>
             <DropdownMenuSeparator />
             <DropdownMenuItem>
