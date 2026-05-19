@@ -10,7 +10,7 @@ async function getClients(businessId: string) {
       MAX(b.date) as last_booking
     FROM clients c
     LEFT JOIN bookings b ON c.id = b.client_id AND b.status != 'cancelled'
-    WHERE c.business_id = ${businessId}
+    WHERE b.business_id = ${businessId}
     GROUP BY c.id
     ORDER BY c.created_at DESC
     LIMIT 100
