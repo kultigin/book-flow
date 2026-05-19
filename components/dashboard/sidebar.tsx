@@ -15,7 +15,9 @@ import {
 } from 'lucide-react'
 
 interface DashboardSidebarProps {
-  accountHolder: AccountHolder
+  name: string
+  email: string
+  role : 'admin' | 'staff'
 }
 
 const navigation = [
@@ -31,7 +33,7 @@ const adminNavigation = [
   { name: 'Configuracion', href: '/dashboard/settings', icon: Settings },
 ]
 
-export function DashboardSidebar({ accountHolder }: DashboardSidebarProps) {
+export function DashboardSidebar({ name,email,role }: DashboardSidebarProps) {
   const pathname = usePathname()
 
   return (
@@ -63,7 +65,7 @@ export function DashboardSidebar({ accountHolder }: DashboardSidebarProps) {
           )
         })}
 
-        {accountHolder.role === 'admin' && (
+        {role === 'admin' && (
           <>
             <div className="pt-4 pb-2">
               <p className="px-3 text-xs font-semibold uppercase text-sidebar-foreground/50">
@@ -96,12 +98,12 @@ export function DashboardSidebar({ accountHolder }: DashboardSidebarProps) {
       <div className="p-4 border-t border-sidebar-border">
         <div className="flex items-center gap-3 px-3 py-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-sidebar-primary text-sidebar-primary-foreground text-sm font-medium">
-            {accountHolder.name.charAt(0).toUpperCase()}
+            {name.charAt(0).toUpperCase()}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium truncate">{accountHolder.name}</p>
+            <p className="text-sm font-medium truncate">{name}</p>
             <p className="text-xs text-sidebar-foreground/60 truncate capitalize">
-              {accountHolder.role}
+              {role}
             </p>
           </div>
         </div>

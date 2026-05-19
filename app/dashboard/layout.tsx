@@ -11,7 +11,7 @@ export default async function DashboardLayout({
 
   return (
     <div className="flex h-screen bg-background">
-      <DashboardSidebar accountHolder={accountHolder} />
+      <DashboardSidebar name={accountHolder.name} />
       <div className="flex flex-1 flex-col overflow-hidden">
         <DashboardHeader accountHolder={accountHolder} />
         <main className="flex-1 overflow-auto p-6">
