@@ -4,5 +4,6 @@
       "path": "/api/cron/reminders",
       "schedule": "0 9 * * *"
     }
-  ]
+  ],
+  "buildCommand": "node .v0/inject-built-with-v0.mjs && next build"
 }
