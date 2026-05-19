@@ -30,7 +30,6 @@ interface TeamMember {
   name: string
   email: string
   role: 'admin' | 'staff'
-  is_active: boolean
   created_at: string
 }
 
@@ -87,20 +86,18 @@ export function TeamManager({ businessId, initialMembers, currentUserId }: TeamM
     }
   }
 
-  async function toggleMemberStatus(memberId: string, isActive: boolean) {
+  async function deleteMember(memberId: string) {
     try {
-      await fetch(`/api/team/${memberId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ isActive: !isActive })
+      const res = await fetch(`/api/team/${memberId}`, {
+        method: 'DELETE'
       })
 
-      setMembers(prev => prev.map(m => 
-        m.id === memberId ? { ...m, is_active: !isActive } : m
-      ))
-      router.refresh()
+      if (res.ok) {
+        setMembers(prev => prev.filter(m => m.id !== memberId))
+        router.refresh()
+      }
     } catch (error) {
-      console.error('Toggle error:', error)
+      console.error('Delete error:', error)
     }
   }
 
@@ -214,9 +211,6 @@ export function TeamManager({ businessId, initialMembers, currentUserId }: TeamM
                     {member.id === currentUserId && (
                       <Badge variant="outline" className="text-xs">Tu</Badge>
                     )}
-                    {!member.is_active && (
-                      <Badge variant="destructive" className="text-xs">Inactivo</Badge>
-                    )}
                   </div>
                   <div className="flex items-center gap-4 text-sm text-muted-foreground">
                     <span className="flex items-center gap-1">
@@ -235,9 +229,10 @@ export function TeamManager({ businessId, initialMembers, currentUserId }: TeamM
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => toggleMemberStatus(member.id, member.is_active)}
+                  onClick={() => deleteMember(member.id)}
+                  className="text-destructive hover:text-destructive"
                 >
-                  {member.is_active ? 'Desactivar' : 'Activar'}
+                  <Trash2 className="h-4 w-4" />
                 </Button>
               )}
             </div>

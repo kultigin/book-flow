@@ -22,14 +22,14 @@ export async function POST(request: NextRequest) {
     // Insert new availability
     for (const day of availability) {
       await sql`
-        INSERT INTO availability (business_id, day_of_week, start_time, end_time, is_available, slot_duration_minutes)
+        INSERT INTO availability (business_id, day_of_week, start_time, end_time, is_active, slot_duration)
         VALUES (
           ${businessId},
           ${day.day_of_week},
           ${day.start_time},
           ${day.end_time},
-          ${day.is_available},
-          ${day.slot_duration_minutes}
+          ${day.is_active ?? true},
+          ${day.slot_duration ?? 30}
         )
       `
     }

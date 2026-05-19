@@ -9,13 +9,13 @@ export interface AccountHolder {
   email: string
   name: string
   role: 'admin' | 'staff'
-  created_at: Date
+  created_at: string
 }
 
 export interface Session {
   id: string
   account_holder_id: string
-  expires_at: Date
+  expires_at: string
 }
 
 const SESSION_DURATION_MS = 7 * 24 * 60 * 60 * 1000 // 7 days
@@ -89,7 +89,7 @@ export async function getSession(): Promise<{ session: Session; accountHolder: A
     session: {
       id: row.session_token,
       account_holder_id: row.id,
-      expires_at: row.expires_at
+      expires_at: String(row.expires_at)
     },
     accountHolder: {
       id: row.id,
@@ -97,7 +97,7 @@ export async function getSession(): Promise<{ session: Session; accountHolder: A
       email: row.email,
       name: row.name,
       role: row.role,
-      created_at: row.created_at
+      created_at: String(row.created_at)
     }
   }
 }
@@ -169,31 +169,22 @@ export async function verifyMagicLinkToken(token: string): Promise<string | null
 
 // Login with email and password
 export async function loginWithPassword(email: string, password: string): Promise<{ success: boolean; error?: string }> {
-  console.log('[v0] loginWithPassword called with email:', email)
-  
   const result = await sql`
     SELECT id, password_hash FROM account_holders 
     WHERE email = ${email}
   `
   
-  console.log('[v0] Query result length:', result.length)
-  
   if (result.length === 0) {
-    console.log('[v0] No account found for email:', email)
     return { success: false, error: 'Invalid email or password' }
   }
   
   const accountHolder = result[0]
-  console.log('[v0] Account found, id:', accountHolder.id)
-  console.log('[v0] Password hash exists:', !!accountHolder.password_hash)
-  console.log('[v0] Password hash (first 20 chars):', accountHolder.password_hash?.substring(0, 20))
   
   if (!accountHolder.password_hash) {
     return { success: false, error: 'Please use magic link to login' }
   }
   
   const isValid = await verifyPassword(password, accountHolder.password_hash)
-  console.log('[v0] Password verification result:', isValid)
   
   if (!isValid) {
     return { success: false, error: 'Invalid email or password' }

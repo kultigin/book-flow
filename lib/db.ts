@@ -53,7 +53,7 @@ export interface Availability {
 export interface BlockedDate {
   id: string
   business_id: string
-  blocked_date: Date
+  date: Date
   reason: string | null
   created_at: Date
 }
@@ -63,9 +63,10 @@ export interface Booking {
   business_id: string
   client_id: string | null
   created_by_account_holder_id: string | null
-  start_time: Date
-  end_time: Date
-  status: "pending_verification" | "confirmed" | "cancelled"
+  date: Date
+  start_time: string
+  end_time: string
+  status: "pending_verification" | "confirmed" | "cancelled" | "completed" | "no_show"
   notes: string | null
   cancellation_token: string | null
   created_at: Date

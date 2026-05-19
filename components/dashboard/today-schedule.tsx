@@ -1,7 +1,8 @@
+// Today's schedule component
 import { sql } from '@/lib/db'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Empty } from '@/components/ui/empty'
+import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription } from '@/components/ui/empty'
 import { Clock, Phone, User } from 'lucide-react'
 
 interface TodayScheduleProps {
@@ -53,11 +54,15 @@ export async function TodaySchedule({ businessId }: TodayScheduleProps) {
       </CardHeader>
       <CardContent>
         {bookings.length === 0 ? (
-          <Empty 
-            icon={Clock}
-            title="Sin citas hoy"
-            description="No hay citas programadas para hoy"
-          />
+          <Empty>
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <Clock className="h-6 w-6" />
+              </EmptyMedia>
+              <EmptyTitle>Sin citas hoy</EmptyTitle>
+              <EmptyDescription>No hay citas programadas para hoy</EmptyDescription>
+            </EmptyHeader>
+          </Empty>
         ) : (
           <div className="space-y-3">
             {bookings.map((booking) => {

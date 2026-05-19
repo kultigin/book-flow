@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
-import { Empty } from '@/components/ui/empty'
+import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription } from '@/components/ui/empty'
 import { CalendarOff, Plus, Trash2 } from 'lucide-react'
 
 interface BlockedDate {
@@ -129,11 +129,15 @@ export function BlockedDatesManager({ businessId, initialBlockedDates }: Blocked
         </FieldGroup>
 
         {blockedDates.length === 0 ? (
-          <Empty
-            icon={CalendarOff}
-            title="Sin dias bloqueados"
-            description="No hay fechas bloqueadas configuradas"
-          />
+          <Empty>
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <CalendarOff className="h-6 w-6" />
+              </EmptyMedia>
+              <EmptyTitle>Sin dias bloqueados</EmptyTitle>
+              <EmptyDescription>No hay fechas bloqueadas configuradas</EmptyDescription>
+            </EmptyHeader>
+          </Empty>
         ) : (
           <div className="space-y-2">
             {blockedDates.map((blocked) => (

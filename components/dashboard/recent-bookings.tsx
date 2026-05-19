@@ -1,6 +1,7 @@
+// Recent bookings component
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Empty } from '@/components/ui/empty'
+import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription } from '@/components/ui/empty'
 import { Calendar, Clock, User } from 'lucide-react'
 
 interface Booking {
@@ -55,11 +56,15 @@ export function RecentBookings({ bookings }: RecentBookingsProps) {
       </CardHeader>
       <CardContent>
         {bookings.length === 0 ? (
-          <Empty 
-            icon={Calendar}
-            title="Sin reservas"
-            description="No hay reservas proximas programadas"
-          />
+          <Empty>
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <Calendar className="h-6 w-6" />
+              </EmptyMedia>
+              <EmptyTitle>Sin reservas</EmptyTitle>
+              <EmptyDescription>No hay reservas proximas programadas</EmptyDescription>
+            </EmptyHeader>
+          </Empty>
         ) : (
           <div className="space-y-4">
             {bookings.map((booking) => (

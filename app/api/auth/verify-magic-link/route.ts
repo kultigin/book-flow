@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
 
     // Get the account holder by email
     const result = await sql`
-      SELECT id FROM account_holders WHERE email = ${email} AND is_active = true
+      SELECT id FROM account_holders WHERE email = ${email}
     `
 
     if (result.length === 0) {

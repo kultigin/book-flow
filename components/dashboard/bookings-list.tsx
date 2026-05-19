@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Empty } from '@/components/ui/empty'
+import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription } from '@/components/ui/empty'
 import { Input } from '@/components/ui/input'
 import {
   DropdownMenu,
@@ -119,11 +119,17 @@ export function BookingsList({ bookings }: BookingsListProps) {
           </div>
 
           {filteredBookings.length === 0 ? (
-            <Empty 
-              icon={Calendar}
-              title="Sin reservas"
-              description={search ? 'No se encontraron reservas con ese criterio' : 'No hay reservas registradas'}
-            />
+            <Empty>
+              <EmptyHeader>
+                <EmptyMedia variant="icon">
+                  <Calendar className="h-6 w-6" />
+                </EmptyMedia>
+                <EmptyTitle>Sin reservas</EmptyTitle>
+                <EmptyDescription>
+                  {search ? 'No se encontraron reservas con ese criterio' : 'No hay reservas registradas'}
+                </EmptyDescription>
+              </EmptyHeader>
+            </Empty>
           ) : (
             <div className="space-y-3">
               {filteredBookings.map((booking) => (

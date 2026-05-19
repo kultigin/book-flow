@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
     const result = await sql`
       INSERT INTO account_holders (business_id, email, password_hash, name, role)
       VALUES (${businessId}, ${email}, ${passwordHash}, ${name}, ${role})
-      RETURNING id, name, email, role, is_active, created_at
+      RETURNING id, name, email, role, created_at
     `
 
     return NextResponse.json({ member: result[0] })

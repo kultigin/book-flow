@@ -11,7 +11,7 @@ async function getBusinessWithAvailability(slug: string) {
 
   const availability = await sql`
     SELECT * FROM availability 
-    WHERE business_id = ${business.id} AND is_available = true
+    WHERE business_id = ${business.id} AND is_active = true
     ORDER BY day_of_week
   `
 
@@ -56,7 +56,7 @@ export default async function PublicBookingPage({
               <div className="flex items-center gap-1">
                 <Clock className="h-4 w-4" />
                 <span>
-                  {availability[0]?.slot_duration_minutes || 30} min por cita
+                  {availability[0]?.slot_duration || 30} min por cita
                 </span>
               </div>
               {business.address && (

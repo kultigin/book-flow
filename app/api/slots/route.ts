@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
       SELECT * FROM availability 
       WHERE business_id = ${businessId} 
         AND day_of_week = ${dayOfWeek}
-        AND is_available = true
+        AND is_active = true
     `
 
     if (availability.length === 0) {
@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
     }
 
     const avail = availability[0]
-    const slotDuration = avail.slot_duration_minutes || 30
+    const slotDuration = avail.slot_duration || 30
 
     // Generate time slots
     const slots: { time: string; available: boolean }[] = []

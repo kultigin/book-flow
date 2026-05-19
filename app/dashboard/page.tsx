@@ -1,3 +1,4 @@
+// Dashboard page - main entry point
 import { requireAuth, getBusinessById } from '@/lib/auth'
 import { sql } from '@/lib/db'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'

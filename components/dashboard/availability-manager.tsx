@@ -16,8 +16,8 @@ interface Availability {
   day_of_week: number
   start_time: string
   end_time: string
-  is_available: boolean
-  slot_duration_minutes: number
+  is_active: boolean
+  slot_duration: number
 }
 
 interface AvailabilityManagerProps {
@@ -39,8 +39,8 @@ const DEFAULT_AVAILABILITY = DAYS.map((day) => ({
   day_of_week: day.value,
   start_time: '09:00',
   end_time: '18:00',
-  is_available: day.value >= 1 && day.value <= 5, // Monday to Friday
-  slot_duration_minutes: 30,
+  is_active: day.value >= 1 && day.value <= 5, // Monday to Friday
+  slot_duration: 30,
 }))
 
 export function AvailabilityManager({ businessId, initialAvailability }: AvailabilityManagerProps) {
@@ -110,11 +110,11 @@ export function AvailabilityManager({ businessId, initialAvailability }: Availab
               </div>
               
               <Switch
-                checked={dayAvail.is_available}
-                onCheckedChange={(checked) => updateDay(day.value, 'is_available', checked)}
+                checked={dayAvail.is_active}
+                onCheckedChange={(checked) => updateDay(day.value, 'is_active', checked)}
               />
               
-              {dayAvail.is_available && (
+              {dayAvail.is_active && (
                 <div className="flex items-center gap-2">
                   <Input
                     type="time"
@@ -132,7 +132,7 @@ export function AvailabilityManager({ businessId, initialAvailability }: Availab
                 </div>
               )}
               
-              {!dayAvail.is_available && (
+              {!dayAvail.is_active && (
                 <span className="text-sm text-muted-foreground">Cerrado</span>
               )}
             </div>
@@ -147,11 +147,11 @@ export function AvailabilityManager({ businessId, initialAvailability }: Availab
               min={15}
               max={120}
               step={15}
-              value={availability[0]?.slot_duration_minutes || 30}
+              value={availability[0]?.slot_duration || 30}
               onChange={(e) => {
                 const value = parseInt(e.target.value)
                 setAvailability((prev) =>
-                  prev.map((day) => ({ ...day, slot_duration_minutes: value }))
+                  prev.map((day) => ({ ...day, slot_duration: value }))
                 )
               }}
               className="w-24"
