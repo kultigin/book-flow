@@ -64,7 +64,7 @@ export function CalendarView({ businessId, initialBookings }: CalendarViewProps)
   // Group bookings by date
   const bookingsByDate: Record<string, Booking[]> = {}
   bookings.forEach((booking: Booking) => {
-    const date = booking.date.split('T')[0]
+    const date = new Date(booking.date).toISOString().split('T')[0]
     if (!bookingsByDate[date]) {
       bookingsByDate[date] = []
     }

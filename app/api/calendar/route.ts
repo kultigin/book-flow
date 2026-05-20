@@ -33,22 +33,41 @@ export async function GET(request: NextRequest) {
     const startDate = `${year}-${String(month).padStart(2, '0')}-01`
     const endDate = `${nextYear}-${String(adjustedMonth).padStart(2, '0')}-01`
 
-    const bookings = await sql`
-      SELECT
-        b.id, b.date, b.start_time, b.end_time, b.status,
-        c.name as client_name, c.phone as client_phone,
-        t.name as treatment_name,
-        expert.name as expert_name
-      FROM bookings b
-      JOIN clients c ON b.client_id = c.id
-      LEFT JOIN treatments t ON b.treatment_id = t.id
-      LEFT JOIN account_holders expert ON b.expert_id = expert.id
-      WHERE b.business_id = ${businessId}
-        AND b.date >= ${startDate}
-        AND b.date < ${endDate}
-        AND b.status IN ('confirmed', 'pending_verification')
-      ORDER BY b.date, b.start_time
-    `
+    const isAdmin = session.accountHolder.role === 'admin'
+    const accountHolderId = session.accountHolder.id
+
+    const bookings = isAdmin
+      ? await sql`
+          SELECT b.id, b.date::text as date, b.start_time::text as start_time, b.end_time::text as end_time, b.status,
+            c.name as client_name, c.phone as client_phone,
+            t.name as treatment_name, expert.name as expert_name
+          FROM bookings b
+          JOIN clients c ON b.client_id = c.id
+          LEFT JOIN treatments t ON b.treatment_id = t.id
+          LEFT JOIN account_holders expert ON b.expert_id = expert.id
+          WHERE b.business_id = ${businessId}
+            AND b.date >= ${startDate} AND b.date < ${endDate}
+            AND b.status IN ('confirmed', 'pending_verification')
+          ORDER BY b.date, b.start_time
+        `
+      : await sql`
+          SELECT b.id, b.date::text as date, b.start_time::text as start_time, b.end_time::text as end_time, b.status,
+            CASE WHEN b.expert_id IS NULL OR b.expert_id = ${accountHolderId}::uuid
+              THEN c.name ELSE 'Reservado' END as client_name,
+            CASE WHEN b.expert_id IS NULL OR b.expert_id = ${accountHolderId}::uuid
+              THEN c.phone ELSE NULL END as client_phone,
+            CASE WHEN b.expert_id IS NULL OR b.expert_id = ${accountHolderId}::uuid
+              THEN t.name ELSE NULL END as treatment_name,
+            expert.name as expert_name
+          FROM bookings b
+          JOIN clients c ON b.client_id = c.id
+          LEFT JOIN treatments t ON b.treatment_id = t.id
+          LEFT JOIN account_holders expert ON b.expert_id = expert.id
+          WHERE b.business_id = ${businessId}
+            AND b.date >= ${startDate} AND b.date < ${endDate}
+            AND b.status IN ('confirmed', 'pending_verification')
+          ORDER BY b.date, b.start_time
+        `
 
     return NextResponse.json({ bookings })
   } catch (error) {

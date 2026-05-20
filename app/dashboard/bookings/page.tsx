@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 import { requireAuth } from '@/lib/auth'
 import { sql } from '@/lib/db'
 import { BookingsList } from '@/components/dashboard/bookings-list'
@@ -9,7 +11,7 @@ async function getBookings(businessId: string, accountHolderId: string, isAdmin:
   if (isAdmin) {
     return sql`
       SELECT
-        b.id, b.date, b.start_time, b.end_time, b.status,
+        b.id, b.date::text as date, b.start_time::text as start_time, b.end_time::text as end_time, b.status,
         c.name as client_name, c.phone as client_phone, c.email as client_email,
         b.notes, ah.name as created_by_name,
         t.name as treatment_name,
@@ -27,7 +29,7 @@ async function getBookings(businessId: string, accountHolderId: string, isAdmin:
 
   return sql`
     SELECT
-      b.id, b.date, b.start_time, b.end_time, b.status,
+      b.id, b.date::text as date, b.start_time::text as start_time, b.end_time::text as end_time, b.status,
       CASE WHEN b.expert_id IS NULL OR b.expert_id = ${accountHolderId}::uuid
         THEN c.name ELSE 'Reservado' END as client_name,
       CASE WHEN b.expert_id IS NULL OR b.expert_id = ${accountHolderId}::uuid

@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 // Dashboard page - main entry point
 // Force recompile: 2026-05-19T20:35
 import { requireAuth, getBusinessById } from '@/lib/auth'
@@ -8,23 +10,43 @@ import { DashboardStats } from '@/components/dashboard/stats'
 import { RecentBookings } from '@/components/dashboard/recent-bookings'
 import { TodaySchedule } from '@/components/dashboard/today-schedule'
 
-async function getDashboardData(businessId: string) {
+async function getDashboardData(businessId: string, accountHolderId: string, isAdmin: boolean) {
   const today = new Date().toISOString().split('T')[0]
-  
+
   const [totalBookings, todayBookings, totalClients, upcomingBookings] = await Promise.all([
-    sql`SELECT COUNT(*) as count FROM bookings WHERE business_id = ${businessId}`,
-    sql`SELECT COUNT(*) as count FROM bookings WHERE business_id = ${businessId} AND date = ${today}`,
-    sql`SELECT COUNT(DISTINCT client_id) as count FROM bookings WHERE business_id = ${businessId}`,
-    sql`
-      SELECT b.*, c.name as client_name, c.phone as client_phone
-      FROM bookings b
-      JOIN clients c ON b.client_id = c.id
-      WHERE b.business_id = ${businessId}
-        AND (b.date > ${today} OR (b.date = ${today} AND b.end_time > NOW()::time))
-        AND b.status IN ('confirmed', 'pending')
-      ORDER BY b.date, b.start_time
-      LIMIT 5
-    `
+    isAdmin
+      ? sql`SELECT COUNT(*) as count FROM bookings WHERE business_id = ${businessId}`
+      : sql`SELECT COUNT(*) as count FROM bookings WHERE business_id = ${businessId} AND (expert_id IS NULL OR expert_id = ${accountHolderId}::uuid)`,
+    isAdmin
+      ? sql`SELECT COUNT(*) as count FROM bookings WHERE business_id = ${businessId} AND date = ${today}`
+      : sql`SELECT COUNT(*) as count FROM bookings WHERE business_id = ${businessId} AND date = ${today} AND (expert_id IS NULL OR expert_id = ${accountHolderId}::uuid)`,
+    isAdmin
+      ? sql`SELECT COUNT(DISTINCT client_id) as count FROM bookings WHERE business_id = ${businessId}`
+      : sql`SELECT COUNT(DISTINCT client_id) as count FROM bookings WHERE business_id = ${businessId} AND (expert_id IS NULL OR expert_id = ${accountHolderId}::uuid)`,
+    isAdmin
+      ? sql`
+          SELECT b.id, b.date::text, b.start_time::text, b.end_time::text, b.status,
+            c.name as client_name, c.phone as client_phone
+          FROM bookings b
+          JOIN clients c ON b.client_id = c.id
+          WHERE b.business_id = ${businessId}
+            AND (b.date > ${today} OR (b.date = ${today} AND b.end_time::text > NOW()::time::text))
+            AND b.status IN ('confirmed', 'pending')
+          ORDER BY b.date, b.start_time
+          LIMIT 5
+        `
+      : sql`
+          SELECT b.id, b.date::text, b.start_time::text, b.end_time::text, b.status,
+            c.name as client_name, c.phone as client_phone
+          FROM bookings b
+          JOIN clients c ON b.client_id = c.id
+          WHERE b.business_id = ${businessId}
+            AND (b.expert_id IS NULL OR b.expert_id = ${accountHolderId}::uuid)
+            AND (b.date > ${today} OR (b.date = ${today} AND b.end_time::text > NOW()::time::text))
+            AND b.status IN ('confirmed', 'pending')
+          ORDER BY b.date, b.start_time
+          LIMIT 5
+        `
   ])
 
   return {
@@ -37,8 +59,9 @@ async function getDashboardData(businessId: string) {
 
 export default async function DashboardPage() {
   const { accountHolder } = await requireAuth()
+  const isAdmin = accountHolder.role === 'admin'
   const business = await getBusinessById(accountHolder.business_id)
-  const data = await getDashboardData(accountHolder.business_id)
+  const data = await getDashboardData(accountHolder.business_id, accountHolder.id, isAdmin)
 
   return (
     <div className="space-y-6">
@@ -58,7 +81,7 @@ export default async function DashboardPage() {
       />
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <TodaySchedule businessId={accountHolder.business_id} />
+        <TodaySchedule businessId={accountHolder.business_id} accountHolderId={accountHolder.id} isAdmin={isAdmin} />
         <RecentBookings bookings={data.upcomingBookings} />
       </div>
     </div>

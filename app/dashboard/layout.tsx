@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 import { requireAuth } from '@/lib/auth'
 import { DashboardSidebar } from '@/components/dashboard/sidebar'
 import { DashboardHeader } from '@/components/dashboard/header'

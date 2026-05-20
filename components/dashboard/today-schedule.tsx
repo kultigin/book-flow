@@ -7,22 +7,43 @@ import { Clock, Phone, User } from 'lucide-react'
 
 interface TodayScheduleProps {
   businessId: string
+  accountHolderId: string
+  isAdmin: boolean
 }
 
-async function getTodayBookings(businessId: string) {
+async function getTodayBookings(businessId: string, accountHolderId: string, isAdmin: boolean) {
   const today = new Date().toISOString().split('T')[0]
-  
-  const bookings = await sql`
-    SELECT b.*, c.name as client_name, c.phone as client_phone
+
+  if (isAdmin) {
+    return sql`
+      SELECT b.id, b.start_time::text, b.end_time::text, b.status,
+        c.name as client_name, c.phone as client_phone,
+        expert.name as expert_name
+      FROM bookings b
+      JOIN clients c ON b.client_id = c.id
+      LEFT JOIN account_holders expert ON b.expert_id = expert.id
+      WHERE b.business_id = ${businessId}
+        AND b.date = ${today}
+        AND b.status IN ('confirmed', 'pending')
+      ORDER BY b.start_time
+    `
+  }
+
+  return sql`
+    SELECT b.id, b.start_time::text, b.end_time::text, b.status,
+      CASE WHEN b.expert_id IS NULL OR b.expert_id = ${accountHolderId}::uuid
+        THEN c.name ELSE 'Reservado' END as client_name,
+      CASE WHEN b.expert_id IS NULL OR b.expert_id = ${accountHolderId}::uuid
+        THEN c.phone ELSE NULL END as client_phone,
+      expert.name as expert_name
     FROM bookings b
     JOIN clients c ON b.client_id = c.id
+    LEFT JOIN account_holders expert ON b.expert_id = expert.id
     WHERE b.business_id = ${businessId}
       AND b.date = ${today}
       AND b.status IN ('confirmed', 'pending')
     ORDER BY b.start_time
   `
-  
-  return bookings
 }
 
 function formatTime(time: string) {
@@ -37,8 +58,8 @@ function isCurrentOrPast(time: string) {
   return now >= bookingTime
 }
 
-export async function TodaySchedule({ businessId }: TodayScheduleProps) {
-  const bookings = await getTodayBookings(businessId)
+export async function TodaySchedule({ businessId, accountHolderId, isAdmin }: TodayScheduleProps) {
+  const bookings = await getTodayBookings(businessId, accountHolderId, isAdmin)
 
   return (
     <Card>
