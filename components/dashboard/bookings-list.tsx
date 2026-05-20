@@ -24,7 +24,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { Calendar, Clock, MoreVertical, Phone, Search, User, XCircle, CheckCircle } from 'lucide-react'
+import { Calendar, Clock, MoreVertical, Phone, Search, User, XCircle, CheckCircle, Stethoscope } from 'lucide-react'
 
 interface Booking {
   id: string
@@ -37,6 +37,8 @@ interface Booking {
   client_phone: string
   client_email?: string
   created_by_name?: string
+  treatment_name?: string
+  expert_name?: string
 }
 
 interface BookingsListProps {
@@ -159,12 +161,23 @@ export function BookingsList({ bookings }: BookingsListProps) {
                       </span>
                     </div>
                     
+                    {(booking.treatment_name || booking.expert_name) && (
+                      <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                        <Stethoscope className="h-3.5 w-3.5" />
+                        <span>
+                          {booking.treatment_name}
+                          {booking.treatment_name && booking.expert_name && ' · '}
+                          {booking.expert_name}
+                        </span>
+                      </div>
+                    )}
+
                     {booking.notes && (
                       <p className="text-sm text-muted-foreground">
                         Notas: {booking.notes}
                       </p>
                     )}
-                    
+
                     {booking.created_by_name && (
                       <p className="text-xs text-muted-foreground">
                         Creada por: {booking.created_by_name}

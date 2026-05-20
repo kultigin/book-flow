@@ -9,18 +9,17 @@ import { Switch } from '@/components/ui/switch'
 import { Spinner } from '@/components/ui/spinner'
 import { Clock } from 'lucide-react'
 
-interface Availability {
+interface ExpertAvailability {
   id: string
-  business_id: string
+  expert_id: string
   day_of_week: number
   start_time: string
   end_time: string
   is_active: boolean
 }
 
-interface AvailabilityManagerProps {
-  businessId: string
-  initialAvailability: Availability[]
+interface ExpertAvailabilityManagerProps {
+  initialAvailability: ExpertAvailability[]
 }
 
 const DAYS = [
@@ -40,11 +39,11 @@ const DEFAULT_AVAILABILITY = DAYS.map((day) => ({
   is_active: day.value >= 1 && day.value <= 5,
 }))
 
-export function AvailabilityManager({ businessId, initialAvailability }: AvailabilityManagerProps) {
+export function ExpertAvailabilityManager({ initialAvailability }: ExpertAvailabilityManagerProps) {
   const router = useRouter()
   const [isSaving, setIsSaving] = useState(false)
-  
-  const mergedAvailability = DAYS.map((day) => {
+
+  const merged = DAYS.map((day) => {
     const existing = initialAvailability.find((a) => a.day_of_week === day.value)
     const defaultDay = DEFAULT_AVAILABILITY.find((d) => d.day_of_week === day.value)!
     return {
@@ -53,10 +52,10 @@ export function AvailabilityManager({ businessId, initialAvailability }: Availab
       id: existing?.id || '',
     }
   })
-  
-  const [availability, setAvailability] = useState(mergedAvailability)
 
-  function updateDay(dayIndex: number, field: string, value: string | boolean | number) {
+  const [availability, setAvailability] = useState(merged)
+
+  function updateDay(dayIndex: number, field: string, value: string | boolean) {
     setAvailability((prev) =>
       prev.map((day) =>
         day.day_of_week === dayIndex ? { ...day, [field]: value } : day
@@ -67,15 +66,13 @@ export function AvailabilityManager({ businessId, initialAvailability }: Availab
   async function handleSave() {
     setIsSaving(true)
     try {
-      const res = await fetch('/api/availability', {
+      const res = await fetch('/api/expert-availability', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ businessId, availability }),
+        body: JSON.stringify({ availability }),
       })
 
-      if (!res.ok) {
-        throw new Error('Failed to save')
-      }
+      if (!res.ok) throw new Error('Failed to save')
 
       router.refresh()
     } catch (error) {
@@ -90,27 +87,27 @@ export function AvailabilityManager({ businessId, initialAvailability }: Availab
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Clock className="h-5 w-5" />
-          Horarios semanales
+          Mis horarios semanales
         </CardTitle>
         <CardDescription>
-          Define los horarios de atencion para cada dia de la semana
+          Define tus horarios de trabajo para cada dia de la semana
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         {DAYS.map((day) => {
           const dayAvail = availability.find((a) => a.day_of_week === day.value)!
-          
+
           return (
             <div key={day.value} className="flex items-center gap-4 py-2 border-b last:border-0">
               <div className="w-24">
                 <span className="font-medium">{day.label}</span>
               </div>
-              
+
               <Switch
                 checked={dayAvail.is_active}
                 onCheckedChange={(checked) => updateDay(day.value, 'is_active', checked)}
               />
-              
+
               {dayAvail.is_active && (
                 <div className="flex items-center gap-2">
                   <Input
@@ -128,9 +125,9 @@ export function AvailabilityManager({ businessId, initialAvailability }: Availab
                   />
                 </div>
               )}
-              
+
               {!dayAvail.is_active && (
-                <span className="text-sm text-muted-foreground">Cerrado</span>
+                <span className="text-sm text-muted-foreground">No disponible</span>
               )}
             </div>
           )

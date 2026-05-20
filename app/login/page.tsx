@@ -7,13 +7,14 @@ import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Calendar, Mail, Lock } from 'lucide-react'
+import { Calendar, Mail, Lock, Eye, EyeOff } from 'lucide-react'
 
 export default function LoginPage() {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const [magicLinkSent, setMagicLinkSent] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
 
   async function handlePasswordLogin(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -136,11 +137,19 @@ export default function LoginPage() {
                         <Input
                           id="password"
                           name="password"
-                          type="password"
+                          type={showPassword ? 'text' : 'password'}
                           placeholder="Tu contrasena"
-                          className="pl-10"
+                          className="pl-10 pr-10"
                           required
                         />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(p => !p)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                          tabIndex={-1}
+                        >
+                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
                       </div>
                     </Field>
                   </FieldGroup>

@@ -16,6 +16,8 @@ interface Booking {
   status: string
   client_name: string
   client_phone: string
+  treatment_name?: string
+  expert_name?: string
 }
 
 interface CalendarViewProps {
@@ -182,16 +184,21 @@ export function CalendarView({ businessId, initialBookings }: CalendarViewProps)
           ) : (
             <div className="space-y-3">
               {selectedDateBookings.map((booking) => (
-                <div key={booking.id} className="rounded-lg border p-3">
-                  <div className="flex items-center justify-between mb-1">
+                <div key={booking.id} className="rounded-lg border p-3 space-y-1">
+                  <div className="flex items-center justify-between">
                     <span className="font-medium">{booking.client_name}</span>
                     <Badge variant={booking.status === 'confirmed' ? 'default' : 'secondary'}>
                       {booking.start_time.slice(0, 5)}
                     </Badge>
                   </div>
-                  <p className="text-sm text-muted-foreground">
-                    {booking.client_phone}
-                  </p>
+                  {(booking.treatment_name || booking.expert_name) && (
+                    <p className="text-sm text-muted-foreground">
+                      {booking.treatment_name}
+                      {booking.treatment_name && booking.expert_name && ' · '}
+                      {booking.expert_name}
+                    </p>
+                  )}
+                  <p className="text-sm text-muted-foreground">{booking.client_phone}</p>
                 </div>
               ))}
             </div>

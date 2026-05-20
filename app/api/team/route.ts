@@ -9,7 +9,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
-    const { businessId, name, email, password, role } = await request.json()
+    const { businessId, name, email, password, role, slug } = await request.json()
 
     // Verify user is admin of this business
     if (session.accountHolder.business_id !== businessId) {
@@ -33,9 +33,9 @@ export async function POST(request: NextRequest) {
 
     // Create account holder
     const result = await sql`
-      INSERT INTO account_holders (business_id, email, password_hash, name, role)
-      VALUES (${businessId}, ${email}, ${passwordHash}, ${name}, ${role})
-      RETURNING id, name, email, role, created_at
+      INSERT INTO account_holders (business_id, email, password_hash, name, role, slug)
+      VALUES (${businessId}, ${email}, ${passwordHash}, ${name}, ${role}, ${slug || null})
+      RETURNING id, name, email, role, slug, bio, is_active, created_at
     `
 
     return NextResponse.json({ member: result[0] })

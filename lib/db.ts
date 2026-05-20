@@ -24,6 +24,9 @@ export interface AccountHolder {
   password_hash: string | null
   name: string | null
   role: "admin" | "staff"
+  slug: string | null
+  bio: string | null
+  is_active: boolean
   magic_link_token: string | null
   magic_link_expires_at: Date | null
   created_at: Date

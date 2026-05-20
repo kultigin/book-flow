@@ -7,13 +7,19 @@ async function getMonthBookings(businessId: string, year: number, month: number)
   const endDate = `${year}-${String(month + 1).padStart(2, '0')}-01`
   
   const bookings = await sql`
-    SELECT b.*, c.name as client_name, c.phone as client_phone
+    SELECT
+      b.id, b.date, b.start_time, b.end_time, b.status,
+      c.name as client_name, c.phone as client_phone,
+      t.name as treatment_name,
+      expert.name as expert_name
     FROM bookings b
     JOIN clients c ON b.client_id = c.id
+    LEFT JOIN treatments t ON b.treatment_id = t.id
+    LEFT JOIN account_holders expert ON b.expert_id = expert.id
     WHERE b.business_id = ${businessId}
       AND b.date >= ${startDate}
       AND b.date < ${endDate}
-      AND b.status IN ('confirmed', 'pending')
+      AND b.status IN ('confirmed', 'pending_verification')
     ORDER BY b.date, b.start_time
   `
   

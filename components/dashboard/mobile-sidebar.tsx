@@ -10,7 +10,9 @@ import {
   Settings,
   CalendarDays,
   UserCircle,
-  LayoutDashboard
+  LayoutDashboard,
+  Stethoscope,
+  User,
 } from 'lucide-react'
 
 interface MobileSidebarProps {
@@ -22,11 +24,14 @@ const navigation = [
   { name: 'Panel', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Reservas', href: '/dashboard/bookings', icon: Calendar },
   { name: 'Calendario', href: '/dashboard/calendar', icon: CalendarDays },
-  { name: 'Disponibilidad', href: '/dashboard/availability', icon: Clock },
+  { name: 'Mi disponibilidad', href: '/dashboard/my-availability', icon: Clock },
+  { name: 'Tratamientos', href: '/dashboard/treatments', icon: Stethoscope },
   { name: 'Clientes', href: '/dashboard/clients', icon: Users },
+  { name: 'Mi perfil', href: '/dashboard/profile', icon: User },
 ]
 
 const adminNavigation = [
+  { name: 'Disponibilidad sala', href: '/dashboard/availability', icon: CalendarDays },
   { name: 'Equipo', href: '/dashboard/team', icon: UserCircle },
   { name: 'Configuracion', href: '/dashboard/settings', icon: Settings },
 ]

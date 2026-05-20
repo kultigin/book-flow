@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Field, FieldGroup, FieldLabel } from '@/components/ui/field'
+import { Field, FieldGroup } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
 import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription } from '@/components/ui/empty'
 import {
@@ -20,58 +20,55 @@ import {
 } from '@/components/ui/alert-dialog'
 import { CalendarOff, Plus, Trash2 } from 'lucide-react'
 
-interface BlockedDate {
+interface ExpertBlockedDate {
   id: string
-  business_id: string
+  expert_id: string
   date: string
   reason?: string
 }
 
-interface BlockedDatesManagerProps {
-  businessId: string
-  initialBlockedDates: BlockedDate[]
+interface ExpertBlockedDatesManagerProps {
+  initialBlockedDates: ExpertBlockedDate[]
 }
 
 function formatDate(dateStr: string) {
   const date = new Date(dateStr)
-  return date.toLocaleDateString('es-ES', { 
-    weekday: 'long', 
-    day: 'numeric', 
+  return date.toLocaleDateString('es-ES', {
+    weekday: 'long',
+    day: 'numeric',
     month: 'long',
-    year: 'numeric'
+    year: 'numeric',
   })
 }
 
-export function BlockedDatesManager({ businessId, initialBlockedDates }: BlockedDatesManagerProps) {
+export function ExpertBlockedDatesManager({ initialBlockedDates }: ExpertBlockedDatesManagerProps) {
   const router = useRouter()
   const [blockedDates, setBlockedDates] = useState(initialBlockedDates)
   const [newDate, setNewDate] = useState('')
   const [newReason, setNewReason] = useState('')
   const [isAdding, setIsAdding] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
-  const [pendingDelete, setPendingDelete] = useState<BlockedDate | null>(null)
+  const [pendingDelete, setPendingDelete] = useState<ExpertBlockedDate | null>(null)
 
   async function handleAddDate() {
     if (!newDate) return
-    
+
     setIsAdding(true)
     try {
-      const res = await fetch('/api/blocked-dates', {
+      const res = await fetch('/api/expert-blocked-dates', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          businessId, 
-          date: newDate, 
-          reason: newReason || null 
-        }),
+        body: JSON.stringify({ date: newDate, reason: newReason || null }),
       })
 
       if (!res.ok) throw new Error('Failed to add')
 
       const data = await res.json()
-      setBlockedDates((prev) => [...prev, data.blockedDate].sort((a, b) => 
-        new Date(a.date).getTime() - new Date(b.date).getTime()
-      ))
+      setBlockedDates((prev) =>
+        [...prev, data.blockedDate].sort(
+          (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+        )
+      )
       setNewDate('')
       setNewReason('')
       router.refresh()
@@ -85,12 +82,8 @@ export function BlockedDatesManager({ businessId, initialBlockedDates }: Blocked
   async function handleRemoveDate(id: string) {
     setDeletingId(id)
     try {
-      const res = await fetch(`/api/blocked-dates/${id}`, {
-        method: 'DELETE',
-      })
-
+      const res = await fetch(`/api/expert-blocked-dates/${id}`, { method: 'DELETE' })
       if (!res.ok) throw new Error('Failed to delete')
-
       setBlockedDates((prev) => prev.filter((d) => d.id !== id))
       router.refresh()
     } catch (error) {
@@ -107,17 +100,16 @@ export function BlockedDatesManager({ businessId, initialBlockedDates }: Blocked
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <CalendarOff className="h-5 w-5" />
-          Dias bloqueados
+          Mis dias bloqueados
         </CardTitle>
         <CardDescription>
-          Bloquea fechas especificas en las que no aceptaras reservas
+          Bloquea fechas en las que no estaras disponible
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <FieldGroup>
           <div className="flex gap-2">
             <Field className="flex-1">
-              <FieldLabel className="sr-only">Fecha</FieldLabel>
               <Input
                 type="date"
                 min={today}
@@ -126,7 +118,6 @@ export function BlockedDatesManager({ businessId, initialBlockedDates }: Blocked
               />
             </Field>
             <Field className="flex-1">
-              <FieldLabel className="sr-only">Motivo</FieldLabel>
               <Input
                 placeholder="Motivo (opcional)"
                 value={newReason}
@@ -146,7 +137,7 @@ export function BlockedDatesManager({ businessId, initialBlockedDates }: Blocked
                 <CalendarOff className="h-6 w-6" />
               </EmptyMedia>
               <EmptyTitle>Sin dias bloqueados</EmptyTitle>
-              <EmptyDescription>No hay fechas bloqueadas configuradas</EmptyDescription>
+              <EmptyDescription>No tienes fechas bloqueadas configuradas</EmptyDescription>
             </EmptyHeader>
           </Empty>
         ) : (

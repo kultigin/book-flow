@@ -7,102 +7,104 @@ export async function POST(request: NextRequest) {
   try {
     const {
       businessId,
+      expertId,
+      treatmentId,
       date,
       slotTime,
       clientName,
       clientPhone,
       clientEmail,
-      notes,
-      verificationCode
+      reminderMinutes = 180,
+      verificationCode,
     } = await request.json()
 
-    // Validate required fields
     if (!businessId || !date || !slotTime || !clientName || !clientPhone || !verificationCode) {
-      return NextResponse.json(
-        { error: 'Faltan campos requeridos' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'Faltan campos requeridos' }, { status: 400 })
     }
 
-    // Verify the code
-    const isValidCode = await verifyCode(clientPhone, verificationCode)
-    if (!isValidCode) {
-      return NextResponse.json(
-        { error: 'Codigo invalido o expirado' },
-        { status: 400 }
-      )
+    // Verify SMS code
+    const isValid = await verifyCode(clientPhone, verificationCode)
+    if (!isValid) {
+      return NextResponse.json({ error: 'Codigo invalido o expirado' }, { status: 400 })
     }
 
-    // Get or create client
+    // Get treatment duration
+    let slotDuration = 30
+    if (treatmentId) {
+      const treatment = await sql`
+        SELECT duration_minutes FROM treatments WHERE id = ${treatmentId}
+      `
+      if (treatment.length > 0) slotDuration = treatment[0].duration_minutes
+    }
+
+    // Calculate end time
+    const [h, m] = slotTime.split(':').map(Number)
+    const endMinutes = h * 60 + m + slotDuration
+    const endTime = `${String(Math.floor(endMinutes / 60)).padStart(2, '0')}:${String(endMinutes % 60).padStart(2, '0')}`
+
+    // Check slot still available (overlap-based, per expert if provided)
+    const conflict = expertId
+      ? await sql`
+          SELECT id FROM bookings
+          WHERE expert_id = ${expertId}
+            AND date = ${date}
+            AND status IN ('confirmed', 'pending_verification')
+            AND start_time < ${endTime}
+            AND end_time > ${slotTime}
+        `
+      : await sql`
+          SELECT id FROM bookings
+          WHERE business_id = ${businessId}
+            AND date = ${date}
+            AND status IN ('confirmed', 'pending_verification')
+            AND start_time < ${endTime}
+            AND end_time > ${slotTime}
+        `
+
+    if (conflict.length > 0) {
+      return NextResponse.json({ error: 'Este horario ya no esta disponible' }, { status: 400 })
+    }
+
+    // Get or create client (clients are global, identified by phone)
     let clientResult = await sql`
-      SELECT id FROM clients WHERE phone = ${clientPhone} AND business_id = ${businessId}
+      SELECT id FROM clients WHERE phone = ${clientPhone}
     `
 
     let clientId: string
     if (clientResult.length === 0) {
       const newClient = await sql`
-        INSERT INTO clients (business_id, phone, name, email, is_verified)
-        VALUES (${businessId}, ${clientPhone}, ${clientName}, ${clientEmail}, true)
+        INSERT INTO clients (phone, name, email, is_verified)
+        VALUES (${clientPhone}, ${clientName}, ${clientEmail || null}, true)
         RETURNING id
       `
       clientId = newClient[0].id
     } else {
       clientId = clientResult[0].id
       await sql`
-        UPDATE clients 
-        SET name = ${clientName}, email = COALESCE(${clientEmail}, email), is_verified = true
+        UPDATE clients
+        SET name = ${clientName}, email = COALESCE(${clientEmail || null}, email), is_verified = true
         WHERE id = ${clientId}
       `
     }
 
-    // Get slot duration
-    const availability = await sql`
-      SELECT slot_duration_minutes FROM availability 
-      WHERE business_id = ${businessId} 
-      LIMIT 1
-    `
-    const slotDuration = availability[0]?.slot_duration_minutes || 30
-
-    // Calculate end time
-    const [hours, minutes] = slotTime.split(':').map(Number)
-    const endDate = new Date(2000, 0, 1, hours, minutes + slotDuration)
-    const endTime = `${String(endDate.getHours()).padStart(2, '0')}:${String(endDate.getMinutes()).padStart(2, '0')}`
-
-    // Check if slot is still available
-    const existingBooking = await sql`
-      SELECT id FROM bookings 
-      WHERE business_id = ${businessId}
-        AND date = ${date}
-        AND start_time = ${slotTime}
-        AND status IN ('confirmed', 'pending')
-    `
-
-    if (existingBooking.length > 0) {
-      return NextResponse.json(
-        { error: 'Este horario ya no esta disponible' },
-        { status: 400 }
-      )
-    }
-
-    // Create the booking (confirmed since phone is verified)
+    // Create the booking
     const booking = await sql`
       INSERT INTO bookings (
-        business_id, client_id, date, start_time, end_time, 
-        status, notes
+        business_id, client_id, treatment_id, expert_id,
+        date, start_time, end_time,
+        status, reminder_minutes
       )
       VALUES (
-        ${businessId}, ${clientId}, ${date}, ${slotTime}, ${endTime},
-        'confirmed', ${notes}
+        ${businessId}, ${clientId}, ${treatmentId || null}, ${expertId || null},
+        ${date}, ${slotTime}, ${endTime},
+        'confirmed', ${reminderMinutes}
       )
       RETURNING *
     `
 
-    // Get business name and send confirmation
     const business = await getBusinessById(businessId)
     const formattedDate = new Date(date).toLocaleDateString('es-ES', {
-      weekday: 'long',
-      day: 'numeric',
-      month: 'long'
+      weekday: 'long', day: 'numeric', month: 'long',
     })
 
     await sendBookingConfirmation(
@@ -115,10 +117,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ booking: booking[0] })
   } catch (error) {
-    console.error('[Verify and Book] Error:', error)
-    return NextResponse.json(
-      { error: 'Error interno del servidor' },
-      { status: 500 }
-    )
+    console.error('[VerifyAndBook] Error:', error)
+    return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 })
   }
 }

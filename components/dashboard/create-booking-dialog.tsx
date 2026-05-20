@@ -24,41 +24,100 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 
+interface Expert {
+  id: string
+  name: string
+  slug: string | null
+}
+
+interface Treatment {
+  id: string
+  expert_id: string
+  name: string
+  duration_minutes: number
+}
+
 interface CreateBookingDialogProps {
   businessId: string
   accountHolderId: string
+  experts: Expert[]
+  treatments: Treatment[]
   children: React.ReactNode
 }
 
+const REMINDER_OPTIONS = [
+  { value: 60, label: '1 hora antes' },
+  { value: 120, label: '2 horas antes' },
+  { value: 180, label: '3 horas antes' },
+  { value: 1440, label: '1 dia antes' },
+  { value: 2880, label: '2 dias antes' },
+]
+
 const fetcher = (url: string) => fetch(url).then(res => res.json())
 
-export function CreateBookingDialog({ businessId, accountHolderId, children }: CreateBookingDialogProps) {
+const emptyForm = {
+  clientName: '',
+  clientPhone: '',
+  clientEmail: '',
+  notes: '',
+  expertId: '',
+  treatmentId: '',
+  slotTime: '',
+  reminderMinutes: 180,
+}
+
+export function CreateBookingDialog({
+  businessId,
+  accountHolderId,
+  experts,
+  treatments,
+  children,
+}: CreateBookingDialogProps) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
-  
   const [selectedDate, setSelectedDate] = useState('')
-  const [formData, setFormData] = useState({
-    clientName: '',
-    clientPhone: '',
-    clientEmail: '',
-    notes: '',
-    slotTime: ''
-  })
+  const [formData, setFormData] = useState(emptyForm)
 
-  const { data: slotsData, isLoading: slotsLoading } = useSWR(
-    selectedDate ? `/api/slots?businessId=${businessId}&date=${selectedDate}` : null,
-    fetcher
-  )
+  const selectedTreatment = treatments.find(t => t.id === formData.treatmentId)
+  const expertTreatments = treatments.filter(t => t.expert_id === formData.expertId)
+
+  const slotsUrl =
+    selectedDate && formData.expertId && formData.treatmentId
+      ? `/api/slots?businessId=${businessId}&date=${selectedDate}&expertId=${formData.expertId}&duration=${selectedTreatment?.duration_minutes ?? 30}`
+      : null
+
+  const { data: slotsData, isLoading: slotsLoading } = useSWR(slotsUrl, fetcher)
 
   const today = new Date().toISOString().split('T')[0]
+
+  function handleExpertChange(expertId: string) {
+    setFormData(prev => ({ ...prev, expertId, treatmentId: '', slotTime: '' }))
+    setSelectedDate('')
+  }
+
+  function handleTreatmentChange(treatmentId: string) {
+    setFormData(prev => ({ ...prev, treatmentId, slotTime: '' }))
+    setSelectedDate('')
+  }
+
+  function handleDateChange(date: string) {
+    setSelectedDate(date)
+    setFormData(prev => ({ ...prev, slotTime: '' }))
+  }
+
+  function handleClose() {
+    setOpen(false)
+    setFormData(emptyForm)
+    setSelectedDate('')
+    setError('')
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError('')
     setIsSubmitting(true)
-
     try {
       const res = await fetch('/api/bookings', {
         method: 'POST',
@@ -72,20 +131,20 @@ export function CreateBookingDialog({ businessId, accountHolderId, children }: C
           clientPhone: formData.clientPhone,
           clientEmail: formData.clientEmail || null,
           notes: formData.notes || null,
-          skipVerification: true // Staff doesn't need verification
-        })
+          treatmentId: formData.treatmentId || null,
+          expertId: formData.expertId || null,
+          reminderMinutes: formData.reminderMinutes,
+          skipVerification: true,
+        }),
       })
 
       const data = await res.json()
-
       if (!res.ok) {
         setError(data.error || 'Error al crear la reserva')
         return
       }
 
-      setOpen(false)
-      setFormData({ clientName: '', clientPhone: '', clientEmail: '', notes: '', slotTime: '' })
-      setSelectedDate('')
+      handleClose()
       router.refresh()
     } catch {
       setError('Error de conexion')
@@ -95,93 +154,126 @@ export function CreateBookingDialog({ businessId, accountHolderId, children }: C
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={(v) => { if (!v) handleClose(); else setOpen(true) }}>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Nueva reserva</DialogTitle>
           <DialogDescription>
-            Crea una reserva para un cliente. Se le enviara una notificacion por SMS.
+            Crea una reserva para un cliente.
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <FieldGroup>
             <Field>
-              <FieldLabel htmlFor="clientName">Nombre del cliente</FieldLabel>
+              <FieldLabel htmlFor="cb-name">Nombre del cliente</FieldLabel>
               <Input
-                id="clientName"
+                id="cb-name"
                 value={formData.clientName}
-                onChange={(e) => setFormData(prev => ({ ...prev, clientName: e.target.value }))}
+                onChange={(e) => setFormData(p => ({ ...p, clientName: e.target.value }))}
                 placeholder="Nombre completo"
                 required
               />
             </Field>
 
             <Field>
-              <FieldLabel htmlFor="clientPhone">Telefono</FieldLabel>
+              <FieldLabel htmlFor="cb-phone">Telefono</FieldLabel>
               <Input
-                id="clientPhone"
+                id="cb-phone"
                 type="tel"
                 value={formData.clientPhone}
-                onChange={(e) => setFormData(prev => ({ ...prev, clientPhone: e.target.value }))}
+                onChange={(e) => setFormData(p => ({ ...p, clientPhone: e.target.value }))}
                 placeholder="+34 612 345 678"
                 required
               />
             </Field>
 
             <Field>
-              <FieldLabel htmlFor="clientEmail">Email (opcional)</FieldLabel>
+              <FieldLabel htmlFor="cb-email">Email (opcional)</FieldLabel>
               <Input
-                id="clientEmail"
+                id="cb-email"
                 type="email"
                 value={formData.clientEmail}
-                onChange={(e) => setFormData(prev => ({ ...prev, clientEmail: e.target.value }))}
+                onChange={(e) => setFormData(p => ({ ...p, clientEmail: e.target.value }))}
                 placeholder="cliente@email.com"
               />
             </Field>
 
             <Field>
-              <FieldLabel htmlFor="date">Fecha</FieldLabel>
-              <Input
-                id="date"
-                type="date"
-                min={today}
-                value={selectedDate}
-                onChange={(e) => {
-                  setSelectedDate(e.target.value)
-                  setFormData(prev => ({ ...prev, slotTime: '' }))
-                }}
-                required
-              />
+              <FieldLabel htmlFor="cb-expert">Experto</FieldLabel>
+              <Select value={formData.expertId} onValueChange={handleExpertChange} required>
+                <SelectTrigger id="cb-expert">
+                  <SelectValue placeholder="Seleccionar experto" />
+                </SelectTrigger>
+                <SelectContent>
+                  {experts.map((e) => (
+                    <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </Field>
 
-            {selectedDate && (
+            {formData.expertId && (
               <Field>
-                <FieldLabel htmlFor="slotTime">Hora</FieldLabel>
+                <FieldLabel htmlFor="cb-treatment">Tratamiento</FieldLabel>
+                {expertTreatments.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Este experto no tiene tratamientos activos</p>
+                ) : (
+                  <Select value={formData.treatmentId} onValueChange={handleTreatmentChange} required>
+                    <SelectTrigger id="cb-treatment">
+                      <SelectValue placeholder="Seleccionar tratamiento" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {expertTreatments.map((t) => (
+                        <SelectItem key={t.id} value={t.id}>
+                          {t.name} · {t.duration_minutes} min
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </Field>
+            )}
+
+            {formData.treatmentId && (
+              <Field>
+                <FieldLabel htmlFor="cb-date">Fecha</FieldLabel>
+                <Input
+                  id="cb-date"
+                  type="date"
+                  min={today}
+                  value={selectedDate}
+                  onChange={(e) => handleDateChange(e.target.value)}
+                  required
+                />
+              </Field>
+            )}
+
+            {selectedDate && formData.treatmentId && (
+              <Field>
+                <FieldLabel htmlFor="cb-time">Hora</FieldLabel>
                 {slotsLoading ? (
-                  <div className="flex items-center gap-2 text-muted-foreground">
+                  <div className="flex items-center gap-2 text-muted-foreground text-sm">
                     <Spinner className="h-4 w-4" />
                     Cargando horarios...
                   </div>
                 ) : slotsData?.slots?.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No hay horarios disponibles para esta fecha</p>
+                  <p className="text-sm text-muted-foreground">
+                    {slotsData?.message || 'No hay horarios disponibles para esta fecha'}
+                  </p>
                 ) : (
                   <Select
                     value={formData.slotTime}
-                    onValueChange={(value) => setFormData(prev => ({ ...prev, slotTime: value }))}
+                    onValueChange={(v) => setFormData(p => ({ ...p, slotTime: v }))}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger id="cb-time">
                       <SelectValue placeholder="Selecciona una hora" />
                     </SelectTrigger>
                     <SelectContent>
                       {slotsData?.slots?.map((slot: { time: string; available: boolean }) => (
-                        <SelectItem 
-                          key={slot.time} 
-                          value={slot.time}
-                          disabled={!slot.available}
-                        >
-                          {slot.time} {!slot.available && '(Ocupado)'}
+                        <SelectItem key={slot.time} value={slot.time} disabled={!slot.available}>
+                          {slot.time}{!slot.available ? ' (Ocupado)' : ''}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -191,12 +283,29 @@ export function CreateBookingDialog({ businessId, accountHolderId, children }: C
             )}
 
             <Field>
-              <FieldLabel htmlFor="notes">Notas (opcional)</FieldLabel>
+              <FieldLabel htmlFor="cb-reminder">Recordatorio</FieldLabel>
+              <Select
+                value={String(formData.reminderMinutes)}
+                onValueChange={(v) => setFormData(p => ({ ...p, reminderMinutes: Number(v) }))}
+              >
+                <SelectTrigger id="cb-reminder">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {REMINDER_OPTIONS.map((o) => (
+                    <SelectItem key={o.value} value={String(o.value)}>{o.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+
+            <Field>
+              <FieldLabel htmlFor="cb-notes">Notas (opcional)</FieldLabel>
               <Textarea
-                id="notes"
+                id="cb-notes"
                 value={formData.notes}
-                onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-                placeholder="Notas adicionales sobre la reserva..."
+                onChange={(e) => setFormData(p => ({ ...p, notes: e.target.value }))}
+                placeholder="Notas adicionales..."
                 rows={3}
               />
             </Field>
@@ -205,14 +314,12 @@ export function CreateBookingDialog({ businessId, accountHolderId, children }: C
           {error && <p className="text-sm text-destructive">{error}</p>}
 
           <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-              Cancelar
-            </Button>
-            <Button 
-              type="submit" 
+            <Button type="button" variant="outline" onClick={handleClose}>Cancelar</Button>
+            <Button
+              type="submit"
               disabled={isSubmitting || !formData.slotTime}
             >
-              {isSubmitting ? <Spinner className="mr-2 h-4 w-4" /> : null}
+              {isSubmitting && <Spinner className="mr-2 h-4 w-4" />}
               {isSubmitting ? 'Creando...' : 'Crear reserva'}
             </Button>
           </div>
