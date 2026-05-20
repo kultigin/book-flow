@@ -5,15 +5,42 @@ import { CreateBookingDialog } from '@/components/dashboard/create-booking-dialo
 import { Button } from '@/components/ui/button'
 import { Plus } from 'lucide-react'
 
-async function getBookings(businessId: string) {
+async function getBookings(businessId: string, accountHolderId: string, isAdmin: boolean) {
+  if (isAdmin) {
+    return sql`
+      SELECT
+        b.id, b.date, b.start_time, b.end_time, b.status,
+        c.name as client_name, c.phone as client_phone, c.email as client_email,
+        b.notes, ah.name as created_by_name,
+        t.name as treatment_name,
+        expert.name as expert_name, b.expert_id
+      FROM bookings b
+      JOIN clients c ON b.client_id = c.id
+      LEFT JOIN account_holders ah ON b.created_by_account_holder_id = ah.id
+      LEFT JOIN treatments t ON b.treatment_id = t.id
+      LEFT JOIN account_holders expert ON b.expert_id = expert.id
+      WHERE b.business_id = ${businessId}
+      ORDER BY b.date DESC, b.start_time DESC
+      LIMIT 50
+    `
+  }
+
   return sql`
     SELECT
-      b.id, b.date, b.start_time, b.end_time, b.status, b.notes,
-      c.name as client_name, c.phone as client_phone, c.email as client_email,
-      ah.name as created_by_name,
-      t.name as treatment_name,
-      expert.name as expert_name,
-      b.expert_id
+      b.id, b.date, b.start_time, b.end_time, b.status,
+      CASE WHEN b.expert_id IS NULL OR b.expert_id = ${accountHolderId}::uuid
+        THEN c.name ELSE 'Reservado' END as client_name,
+      CASE WHEN b.expert_id IS NULL OR b.expert_id = ${accountHolderId}::uuid
+        THEN c.phone ELSE NULL END as client_phone,
+      CASE WHEN b.expert_id IS NULL OR b.expert_id = ${accountHolderId}::uuid
+        THEN c.email ELSE NULL END as client_email,
+      CASE WHEN b.expert_id IS NULL OR b.expert_id = ${accountHolderId}::uuid
+        THEN b.notes ELSE NULL END as notes,
+      CASE WHEN b.expert_id IS NULL OR b.expert_id = ${accountHolderId}::uuid
+        THEN ah.name ELSE NULL END as created_by_name,
+      CASE WHEN b.expert_id IS NULL OR b.expert_id = ${accountHolderId}::uuid
+        THEN t.name ELSE NULL END as treatment_name,
+      expert.name as expert_name, b.expert_id
     FROM bookings b
     JOIN clients c ON b.client_id = c.id
     LEFT JOIN account_holders ah ON b.created_by_account_holder_id = ah.id
@@ -44,8 +71,9 @@ async function getTreatments(businessId: string) {
 
 export default async function BookingsPage() {
   const { accountHolder } = await requireAuth()
+  const isAdmin = accountHolder.role === 'admin'
   const [bookings, experts, treatments] = await Promise.all([
-    getBookings(accountHolder.business_id),
+    getBookings(accountHolder.business_id, accountHolder.id, isAdmin),
     getExperts(accountHolder.business_id),
     getTreatments(accountHolder.business_id),
   ])
@@ -60,6 +88,7 @@ export default async function BookingsPage() {
         <CreateBookingDialog
           businessId={accountHolder.business_id}
           accountHolderId={accountHolder.id}
+          isAdmin={isAdmin}
           experts={experts}
           treatments={treatments}
         >

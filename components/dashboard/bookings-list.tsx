@@ -48,6 +48,7 @@ interface BookingsListProps {
   isAdmin: boolean
 }
 
+
 function formatDate(dateStr: string) {
   const date = new Date(dateStr)
   return date.toLocaleDateString('es-ES', { 
@@ -143,60 +144,51 @@ export function BookingsList({ bookings, currentUserId, isAdmin }: BookingsListP
                   className="flex items-start justify-between gap-4 rounded-lg border p-4"
                 >
                   <div className="flex-1 space-y-2">
-                    {(() => {
-                      const canSeeClient = isAdmin || !booking.expert_id || booking.expert_id === currentUserId
-                      return (
-                        <>
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <User className="h-4 w-4 text-muted-foreground" />
-                            <span className="font-medium">
-                              {canSeeClient ? booking.client_name : 'Reservado'}
-                            </span>
-                            {getStatusBadge(booking.status)}
-                          </div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <User className="h-4 w-4 text-muted-foreground" />
+                      <span className="font-medium">{booking.client_name}</span>
+                      {getStatusBadge(booking.status)}
+                    </div>
 
-                          <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
-                            <span className="flex items-center gap-1">
-                              <Calendar className="h-3.5 w-3.5" />
-                              {formatDate(booking.date)}
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <Clock className="h-3.5 w-3.5" />
-                              {formatTime(booking.start_time)} - {formatTime(booking.end_time)}
-                            </span>
-                            {canSeeClient && (
-                              <span className="flex items-center gap-1">
-                                <Phone className="h-3.5 w-3.5" />
-                                {booking.client_phone}
-                              </span>
-                            )}
-                          </div>
+                    <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
+                      <span className="flex items-center gap-1">
+                        <Calendar className="h-3.5 w-3.5" />
+                        {formatDate(booking.date)}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Clock className="h-3.5 w-3.5" />
+                        {formatTime(booking.start_time)} - {formatTime(booking.end_time)}
+                      </span>
+                      {booking.client_phone && (
+                        <span className="flex items-center gap-1">
+                          <Phone className="h-3.5 w-3.5" />
+                          {booking.client_phone}
+                        </span>
+                      )}
+                    </div>
 
-                          {(booking.treatment_name || booking.expert_name) && (
-                            <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                              <Stethoscope className="h-3.5 w-3.5" />
-                              <span>
-                                {canSeeClient && booking.treatment_name}
-                                {canSeeClient && booking.treatment_name && booking.expert_name && ' · '}
-                                {booking.expert_name}
-                              </span>
-                            </div>
-                          )}
+                    {(booking.treatment_name || booking.expert_name) && (
+                      <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                        <Stethoscope className="h-3.5 w-3.5" />
+                        <span>
+                          {booking.treatment_name}
+                          {booking.treatment_name && booking.expert_name && ' · '}
+                          {booking.expert_name}
+                        </span>
+                      </div>
+                    )}
 
-                          {canSeeClient && booking.notes && (
-                            <p className="text-sm text-muted-foreground">
-                              Notas: {booking.notes}
-                            </p>
-                          )}
+                    {booking.notes && (
+                      <p className="text-sm text-muted-foreground">
+                        Notas: {booking.notes}
+                      </p>
+                    )}
 
-                          {canSeeClient && booking.created_by_name && (
-                            <p className="text-xs text-muted-foreground">
-                              Creada por: {booking.created_by_name}
-                            </p>
-                          )}
-                        </>
-                      )
-                    })()}
+                    {booking.created_by_name && (
+                      <p className="text-xs text-muted-foreground">
+                        Creada por: {booking.created_by_name}
+                      </p>
+                    )}
                   </div>
 
                   {(isAdmin || !booking.expert_id || booking.expert_id === currentUserId) && (

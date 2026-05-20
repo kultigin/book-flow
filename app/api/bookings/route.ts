@@ -71,16 +71,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Este horario ya esta ocupado' }, { status: 400 })
     }
 
-    // Get or create client
+    // Get or create client (clients are global, identified by phone)
     let clientResult = await sql`
-      SELECT id FROM clients WHERE phone = ${clientPhone} AND business_id = ${businessId}
+      SELECT id FROM clients WHERE phone = ${clientPhone}
     `
 
     let clientId: string
     if (clientResult.length === 0) {
       const newClient = await sql`
-        INSERT INTO clients (business_id, phone, name, email)
-        VALUES (${businessId}, ${clientPhone}, ${clientName}, ${clientEmail || null})
+        INSERT INTO clients (phone, name, email)
+        VALUES (${clientPhone}, ${clientName}, ${clientEmail || null})
         RETURNING id
       `
       clientId = newClient[0].id

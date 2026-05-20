@@ -6,7 +6,6 @@ import useSWR from 'swr'
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -40,18 +39,11 @@ interface Treatment {
 interface CreateBookingDialogProps {
   businessId: string
   accountHolderId: string
+  isAdmin: boolean
   experts: Expert[]
   treatments: Treatment[]
   children: React.ReactNode
 }
-
-const REMINDER_OPTIONS = [
-  { value: 60, label: '1 hora antes' },
-  { value: 120, label: '2 horas antes' },
-  { value: 180, label: '3 horas antes' },
-  { value: 1440, label: '1 dia antes' },
-  { value: 2880, label: '2 dias antes' },
-]
 
 const fetcher = (url: string) => fetch(url).then(res => res.json())
 
@@ -63,12 +55,13 @@ const emptyForm = {
   expertId: '',
   treatmentId: '',
   slotTime: '',
-  reminderMinutes: 180,
+  reminderMinutes: 1440,
 }
 
 export function CreateBookingDialog({
   businessId,
   accountHolderId,
+  isAdmin,
   experts,
   treatments,
   children,
@@ -78,14 +71,18 @@ export function CreateBookingDialog({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [selectedDate, setSelectedDate] = useState('')
-  const [formData, setFormData] = useState(emptyForm)
+  const [formData, setFormData] = useState({
+    ...emptyForm,
+    expertId: isAdmin ? '' : accountHolderId,
+  })
 
+  const effectiveExpertId = isAdmin ? formData.expertId : accountHolderId
+  const expertTreatments = treatments.filter(t => t.expert_id === effectiveExpertId)
   const selectedTreatment = treatments.find(t => t.id === formData.treatmentId)
-  const expertTreatments = treatments.filter(t => t.expert_id === formData.expertId)
 
   const slotsUrl =
-    selectedDate && formData.expertId && formData.treatmentId
-      ? `/api/slots?businessId=${businessId}&date=${selectedDate}&expertId=${formData.expertId}&duration=${selectedTreatment?.duration_minutes ?? 30}`
+    selectedDate && effectiveExpertId && formData.treatmentId
+      ? `/api/slots?businessId=${businessId}&date=${selectedDate}&expertId=${effectiveExpertId}&duration=${selectedTreatment?.duration_minutes ?? 30}`
       : null
 
   const { data: slotsData, isLoading: slotsLoading } = useSWR(slotsUrl, fetcher)
@@ -109,7 +106,7 @@ export function CreateBookingDialog({
 
   function handleClose() {
     setOpen(false)
-    setFormData(emptyForm)
+    setFormData({ ...emptyForm, expertId: isAdmin ? '' : accountHolderId })
     setSelectedDate('')
     setError('')
   }
@@ -132,7 +129,7 @@ export function CreateBookingDialog({
           clientEmail: formData.clientEmail || null,
           notes: formData.notes || null,
           treatmentId: formData.treatmentId || null,
-          expertId: formData.expertId || null,
+          expertId: effectiveExpertId || null,
           reminderMinutes: formData.reminderMinutes,
           skipVerification: true,
         }),
@@ -153,35 +150,37 @@ export function CreateBookingDialog({
     }
   }
 
+  const availableSlots = slotsData?.slots?.filter((s: { time: string; available: boolean }) => s.available) ?? []
+
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) handleClose(); else setOpen(true) }}>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="w-full max-w-sm max-h-[92vh] overflow-y-auto p-4">
+        <DialogHeader className="pb-2">
           <DialogTitle>Nueva reserva</DialogTitle>
-          <DialogDescription>
-            Crea una reserva para un cliente.
-          </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-3">
           <FieldGroup>
+            {/* Client info */}
             <Field>
-              <FieldLabel htmlFor="cb-name">Nombre del cliente</FieldLabel>
+              <FieldLabel htmlFor="cb-name">Nombre</FieldLabel>
               <Input
                 id="cb-name"
                 value={formData.clientName}
                 onChange={(e) => setFormData(p => ({ ...p, clientName: e.target.value }))}
-                placeholder="Nombre completo"
+                placeholder="Nombre del cliente"
                 required
+                autoComplete="off"
               />
             </Field>
 
             <Field>
-              <FieldLabel htmlFor="cb-phone">Telefono</FieldLabel>
+              <FieldLabel htmlFor="cb-phone">Teléfono</FieldLabel>
               <Input
                 id="cb-phone"
                 type="tel"
+                inputMode="tel"
                 value={formData.clientPhone}
                 onChange={(e) => setFormData(p => ({ ...p, clientPhone: e.target.value }))}
                 placeholder="+34 612 345 678"
@@ -189,37 +188,32 @@ export function CreateBookingDialog({
               />
             </Field>
 
-            <Field>
-              <FieldLabel htmlFor="cb-email">Email (opcional)</FieldLabel>
-              <Input
-                id="cb-email"
-                type="email"
-                value={formData.clientEmail}
-                onChange={(e) => setFormData(p => ({ ...p, clientEmail: e.target.value }))}
-                placeholder="cliente@email.com"
-              />
-            </Field>
-
-            <Field>
-              <FieldLabel htmlFor="cb-expert">Experto</FieldLabel>
-              <Select value={formData.expertId} onValueChange={handleExpertChange} required>
-                <SelectTrigger id="cb-expert">
-                  <SelectValue placeholder="Seleccionar experto" />
-                </SelectTrigger>
-                <SelectContent>
-                  {experts.map((e) => (
-                    <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </Field>
-
-            {formData.expertId && (
+            {/* Admin-only: expert selector */}
+            {isAdmin && (
               <Field>
-                <FieldLabel htmlFor="cb-treatment">Tratamiento</FieldLabel>
-                {expertTreatments.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">Este experto no tiene tratamientos activos</p>
-                ) : (
+                <FieldLabel htmlFor="cb-expert">Experto</FieldLabel>
+                <Select value={formData.expertId} onValueChange={handleExpertChange} required>
+                  <SelectTrigger id="cb-expert">
+                    <SelectValue placeholder="Seleccionar experto" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {experts.map((e) => (
+                      <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Field>
+            )}
+
+            {/* Treatment — or warning if none exist (for admin: only after expert is selected) */}
+            {effectiveExpertId && (
+              expertTreatments.length === 0 ? (
+                <p className="text-sm text-amber-600 dark:text-amber-400 rounded-md border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30 px-3 py-2">
+                  No tienes tratamientos activos. Añade uno en <strong>Tratamientos</strong> antes de crear una reserva.
+                </p>
+              ) : (
+                <Field>
+                  <FieldLabel htmlFor="cb-treatment">Tratamiento</FieldLabel>
                   <Select value={formData.treatmentId} onValueChange={handleTreatmentChange} required>
                     <SelectTrigger id="cb-treatment">
                       <SelectValue placeholder="Seleccionar tratamiento" />
@@ -232,10 +226,11 @@ export function CreateBookingDialog({
                       ))}
                     </SelectContent>
                   </Select>
-                )}
-              </Field>
+                </Field>
+              )
             )}
 
+            {/* Date — only after treatment is selected */}
             {formData.treatmentId && (
               <Field>
                 <FieldLabel htmlFor="cb-date">Fecha</FieldLabel>
@@ -250,75 +245,83 @@ export function CreateBookingDialog({
               </Field>
             )}
 
-            {selectedDate && formData.treatmentId && (
+            {/* Time slots as tappable buttons */}
+            {selectedDate && (
               <Field>
-                <FieldLabel htmlFor="cb-time">Hora</FieldLabel>
+                <FieldLabel>Hora</FieldLabel>
                 {slotsLoading ? (
-                  <div className="flex items-center gap-2 text-muted-foreground text-sm">
+                  <div className="flex items-center gap-2 text-muted-foreground text-sm py-2">
                     <Spinner className="h-4 w-4" />
                     Cargando horarios...
                   </div>
-                ) : slotsData?.slots?.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">
-                    {slotsData?.message || 'No hay horarios disponibles para esta fecha'}
+                ) : availableSlots.length === 0 ? (
+                  <p className="text-sm text-muted-foreground py-1">
+                    {slotsData?.message || 'No hay horarios disponibles'}
                   </p>
                 ) : (
-                  <Select
-                    value={formData.slotTime}
-                    onValueChange={(v) => setFormData(p => ({ ...p, slotTime: v }))}
-                  >
-                    <SelectTrigger id="cb-time">
-                      <SelectValue placeholder="Selecciona una hora" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {slotsData?.slots?.map((slot: { time: string; available: boolean }) => (
-                        <SelectItem key={slot.time} value={slot.time} disabled={!slot.available}>
-                          {slot.time}{!slot.available ? ' (Ocupado)' : ''}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {availableSlots.map((slot: { time: string }) => (
+                      <button
+                        key={slot.time}
+                        type="button"
+                        onClick={() => setFormData(p => ({ ...p, slotTime: slot.time }))}
+                        className={`rounded-md border py-2 text-sm font-medium transition-colors ${
+                          formData.slotTime === slot.time
+                            ? 'bg-primary text-primary-foreground border-primary'
+                            : 'border-input bg-background hover:bg-accent hover:text-accent-foreground'
+                        }`}
+                      >
+                        {slot.time}
+                      </button>
+                    ))}
+                  </div>
                 )}
               </Field>
             )}
 
-            <Field>
-              <FieldLabel htmlFor="cb-reminder">Recordatorio</FieldLabel>
-              <Select
-                value={String(formData.reminderMinutes)}
-                onValueChange={(v) => setFormData(p => ({ ...p, reminderMinutes: Number(v) }))}
-              >
-                <SelectTrigger id="cb-reminder">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {REMINDER_OPTIONS.map((o) => (
-                    <SelectItem key={o.value} value={String(o.value)}>{o.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </Field>
+            {/* Optional fields — only show once a slot is picked */}
+            {formData.slotTime && (
+              <>
+                <Field>
+                  <FieldLabel htmlFor="cb-reminder">Recordatorio</FieldLabel>
+                  <Select
+                    value={String(formData.reminderMinutes)}
+                    onValueChange={(v) => setFormData(p => ({ ...p, reminderMinutes: Number(v) }))}
+                  >
+                    <SelectTrigger id="cb-reminder">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="60">1 hora antes</SelectItem>
+                      <SelectItem value="120">2 horas antes</SelectItem>
+                      <SelectItem value="180">3 horas antes</SelectItem>
+                      <SelectItem value="1440">1 día antes</SelectItem>
+                      <SelectItem value="2880">2 días antes</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </Field>
 
-            <Field>
-              <FieldLabel htmlFor="cb-notes">Notas (opcional)</FieldLabel>
-              <Textarea
-                id="cb-notes"
-                value={formData.notes}
-                onChange={(e) => setFormData(p => ({ ...p, notes: e.target.value }))}
-                placeholder="Notas adicionales..."
-                rows={3}
-              />
-            </Field>
+                <Field>
+                  <FieldLabel htmlFor="cb-notes">Notas (opcional)</FieldLabel>
+                  <Textarea
+                    id="cb-notes"
+                    value={formData.notes}
+                    onChange={(e) => setFormData(p => ({ ...p, notes: e.target.value }))}
+                    placeholder="Notas adicionales..."
+                    rows={2}
+                  />
+                </Field>
+              </>
+            )}
           </FieldGroup>
 
           {error && <p className="text-sm text-destructive">{error}</p>}
 
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={handleClose}>Cancelar</Button>
-            <Button
-              type="submit"
-              disabled={isSubmitting || !formData.slotTime}
-            >
+          <div className="flex gap-2 pt-1">
+            <Button type="button" variant="outline" className="flex-1" onClick={handleClose}>
+              Cancelar
+            </Button>
+            <Button type="submit" className="flex-1" disabled={isSubmitting || !formData.slotTime}>
               {isSubmitting && <Spinner className="mr-2 h-4 w-4" />}
               {isSubmitting ? 'Creando...' : 'Crear reserva'}
             </Button>

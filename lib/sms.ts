@@ -13,13 +13,23 @@ function getClient() {
   return twilio(accountSid, authToken)
 }
 
-export type SmsType = 
-  | 'verification' 
-  | 'booking_confirmation' 
+export type SmsType =
+  | 'verification'
+  | 'booking_confirmation'
   | 'booking_created_by_staff'
-  | 'reminder_24h' 
-  | 'reminder_2h' 
+  | 'reminder_24h'
+  | 'reminder_2h'
   | 'cancellation'
+
+// Maps SmsType to the sms_message_type DB enum values
+const DB_TYPE_MAP: Record<SmsType, string> = {
+  verification: 'verification',
+  booking_confirmation: 'confirmation',
+  booking_created_by_staff: 'staff_created',
+  reminder_24h: 'reminder_24h',
+  reminder_2h: 'reminder_2h',
+  cancellation: 'cancellation',
+}
 
 interface SendSmsParams {
   to: string
@@ -70,7 +80,7 @@ export async function sendSms({ to, message, type, bookingId }: SendSmsParams): 
   // Log to database
   await sql`
     INSERT INTO sms_log (phone, message_type, status, booking_id, error_message)
-    VALUES (${normalizedPhone}, ${type}, ${status}, ${bookingId || null}, ${errorMessage})
+    VALUES (${normalizedPhone}, ${DB_TYPE_MAP[type]}, ${status}, ${bookingId || null}, ${errorMessage})
   `
   
   return status !== 'failed'
