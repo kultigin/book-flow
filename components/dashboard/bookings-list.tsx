@@ -39,10 +39,13 @@ interface Booking {
   created_by_name?: string
   treatment_name?: string
   expert_name?: string
+  expert_id?: string
 }
 
 interface BookingsListProps {
   bookings: Booking[]
+  currentUserId: string
+  isAdmin: boolean
 }
 
 function formatDate(dateStr: string) {
@@ -74,7 +77,7 @@ function getStatusBadge(status: string) {
   }
 }
 
-export function BookingsList({ bookings }: BookingsListProps) {
+export function BookingsList({ bookings, currentUserId, isAdmin }: BookingsListProps) {
   const router = useRouter()
   const [search, setSearch] = useState('')
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false)
@@ -140,85 +143,98 @@ export function BookingsList({ bookings }: BookingsListProps) {
                   className="flex items-start justify-between gap-4 rounded-lg border p-4"
                 >
                   <div className="flex-1 space-y-2">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <User className="h-4 w-4 text-muted-foreground" />
-                      <span className="font-medium">{booking.client_name}</span>
-                      {getStatusBadge(booking.status)}
-                    </div>
-                    
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
-                      <span className="flex items-center gap-1">
-                        <Calendar className="h-3.5 w-3.5" />
-                        {formatDate(booking.date)}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Clock className="h-3.5 w-3.5" />
-                        {formatTime(booking.start_time)} - {formatTime(booking.end_time)}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Phone className="h-3.5 w-3.5" />
-                        {booking.client_phone}
-                      </span>
-                    </div>
-                    
-                    {(booking.treatment_name || booking.expert_name) && (
-                      <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                        <Stethoscope className="h-3.5 w-3.5" />
-                        <span>
-                          {booking.treatment_name}
-                          {booking.treatment_name && booking.expert_name && ' · '}
-                          {booking.expert_name}
-                        </span>
-                      </div>
-                    )}
+                    {(() => {
+                      const canSeeClient = isAdmin || !booking.expert_id || booking.expert_id === currentUserId
+                      return (
+                        <>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <User className="h-4 w-4 text-muted-foreground" />
+                            <span className="font-medium">
+                              {canSeeClient ? booking.client_name : 'Reservado'}
+                            </span>
+                            {getStatusBadge(booking.status)}
+                          </div>
 
-                    {booking.notes && (
-                      <p className="text-sm text-muted-foreground">
-                        Notas: {booking.notes}
-                      </p>
-                    )}
+                          <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
+                            <span className="flex items-center gap-1">
+                              <Calendar className="h-3.5 w-3.5" />
+                              {formatDate(booking.date)}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <Clock className="h-3.5 w-3.5" />
+                              {formatTime(booking.start_time)} - {formatTime(booking.end_time)}
+                            </span>
+                            {canSeeClient && (
+                              <span className="flex items-center gap-1">
+                                <Phone className="h-3.5 w-3.5" />
+                                {booking.client_phone}
+                              </span>
+                            )}
+                          </div>
 
-                    {booking.created_by_name && (
-                      <p className="text-xs text-muted-foreground">
-                        Creada por: {booking.created_by_name}
-                      </p>
-                    )}
+                          {(booking.treatment_name || booking.expert_name) && (
+                            <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                              <Stethoscope className="h-3.5 w-3.5" />
+                              <span>
+                                {canSeeClient && booking.treatment_name}
+                                {canSeeClient && booking.treatment_name && booking.expert_name && ' · '}
+                                {booking.expert_name}
+                              </span>
+                            </div>
+                          )}
+
+                          {canSeeClient && booking.notes && (
+                            <p className="text-sm text-muted-foreground">
+                              Notas: {booking.notes}
+                            </p>
+                          )}
+
+                          {canSeeClient && booking.created_by_name && (
+                            <p className="text-xs text-muted-foreground">
+                              Creada por: {booking.created_by_name}
+                            </p>
+                          )}
+                        </>
+                      )
+                    })()}
                   </div>
 
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon">
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      {booking.status === 'pending' && (
-                        <DropdownMenuItem onClick={() => updateBookingStatus(booking.id, 'confirmed')}>
-                          <CheckCircle className="mr-2 h-4 w-4" />
-                          Confirmar
-                        </DropdownMenuItem>
-                      )}
-                      {booking.status === 'confirmed' && (
-                        <DropdownMenuItem onClick={() => updateBookingStatus(booking.id, 'completed')}>
-                          <CheckCircle className="mr-2 h-4 w-4" />
-                          Marcar completada
-                        </DropdownMenuItem>
-                      )}
-                      <DropdownMenuSeparator />
-                      {(booking.status === 'pending' || booking.status === 'confirmed') && (
-                        <DropdownMenuItem 
-                          onClick={() => {
-                            setSelectedBooking(booking)
-                            setCancelDialogOpen(true)
-                          }}
-                          className="text-destructive focus:text-destructive"
-                        >
-                          <XCircle className="mr-2 h-4 w-4" />
-                          Cancelar reserva
-                        </DropdownMenuItem>
-                      )}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  {(isAdmin || !booking.expert_id || booking.expert_id === currentUserId) && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon">
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        {booking.status === 'pending' && (
+                          <DropdownMenuItem onClick={() => updateBookingStatus(booking.id, 'confirmed')}>
+                            <CheckCircle className="mr-2 h-4 w-4" />
+                            Confirmar
+                          </DropdownMenuItem>
+                        )}
+                        {booking.status === 'confirmed' && (
+                          <DropdownMenuItem onClick={() => updateBookingStatus(booking.id, 'completed')}>
+                            <CheckCircle className="mr-2 h-4 w-4" />
+                            Marcar completada
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuSeparator />
+                        {(booking.status === 'pending' || booking.status === 'confirmed') && (
+                          <DropdownMenuItem
+                            onClick={() => {
+                              setSelectedBooking(booking)
+                              setCancelDialogOpen(true)
+                            }}
+                            className="text-destructive focus:text-destructive"
+                          >
+                            <XCircle className="mr-2 h-4 w-4" />
+                            Cancelar reserva
+                          </DropdownMenuItem>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
                 </div>
               ))}
             </div>

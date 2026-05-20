@@ -12,7 +12,8 @@ async function getBookings(businessId: string) {
       c.name as client_name, c.phone as client_phone, c.email as client_email,
       ah.name as created_by_name,
       t.name as treatment_name,
-      expert.name as expert_name
+      expert.name as expert_name,
+      b.expert_id
     FROM bookings b
     JOIN clients c ON b.client_id = c.id
     LEFT JOIN account_holders ah ON b.created_by_account_holder_id = ah.id
@@ -69,7 +70,7 @@ export default async function BookingsPage() {
         </CreateBookingDialog>
       </div>
 
-      <BookingsList bookings={bookings} />
+      <BookingsList bookings={bookings} currentUserId={accountHolder.id} isAdmin={accountHolder.role === 'admin'} />
     </div>
   )
 }
