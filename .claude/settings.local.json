@@ -4,7 +4,9 @@
       "Bash(./node_modules/.bin/tsc --noEmit)",
       "Bash(node_modules/.bin/tsc --noEmit)",
       "Bash(pnpm dev *)",
-      "Bash(echo \"Server starting, PID: $!\")"
+      "Bash(echo \"Server starting, PID: $!\")",
+      "Bash(curl -s http://localhost:3000/api/public/group-schedules?expertId=test)",
+      "Bash(curl *)"
     ]
   }
 }

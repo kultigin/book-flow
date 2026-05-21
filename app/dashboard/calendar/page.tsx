@@ -12,7 +12,8 @@ async function getMonthBookings(businessId: string, year: number, month: number,
     return sql`
       SELECT b.id, b.date::text as date, b.start_time::text as start_time, b.end_time::text as end_time, b.status,
         c.name as client_name, c.phone as client_phone,
-        t.name as treatment_name, expert.name as expert_name
+        t.name as treatment_name, COALESCE(t.is_group, false) as is_group,
+        expert.name as expert_name
       FROM bookings b
       JOIN clients c ON b.client_id = c.id
       LEFT JOIN treatments t ON b.treatment_id = t.id
@@ -32,6 +33,7 @@ async function getMonthBookings(businessId: string, year: number, month: number,
         THEN c.phone ELSE NULL END as client_phone,
       CASE WHEN b.expert_id IS NULL OR b.expert_id = ${accountHolderId}::uuid
         THEN t.name ELSE NULL END as treatment_name,
+      COALESCE(t.is_group, false) as is_group,
       expert.name as expert_name
     FROM bookings b
     JOIN clients c ON b.client_id = c.id

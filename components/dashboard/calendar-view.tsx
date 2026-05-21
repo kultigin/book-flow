@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Users } from 'lucide-react'
 
 interface Booking {
   id: string
@@ -18,6 +18,7 @@ interface Booking {
   client_phone: string
   treatment_name?: string
   expert_name?: string
+  is_group?: boolean
 }
 
 interface CalendarViewProps {
@@ -192,7 +193,8 @@ export function CalendarView({ businessId, initialBookings }: CalendarViewProps)
                     </Badge>
                   </div>
                   {(booking.treatment_name || booking.expert_name) && (
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-muted-foreground flex items-center gap-1.5 flex-wrap">
+                      {booking.is_group && <Users className="h-3.5 w-3.5 shrink-0 text-primary" />}
                       {booking.treatment_name}
                       {booking.treatment_name && booking.expert_name && ' · '}
                       {booking.expert_name}

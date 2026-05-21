@@ -24,7 +24,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { Calendar, Clock, MoreVertical, Phone, Search, User, XCircle, CheckCircle, Stethoscope } from 'lucide-react'
+import { Calendar, Clock, MoreVertical, Phone, Search, User, XCircle, CheckCircle, Stethoscope, Users } from 'lucide-react'
 
 interface Booking {
   id: string
@@ -40,6 +40,9 @@ interface Booking {
   treatment_name?: string
   expert_name?: string
   expert_id?: string
+  is_group?: boolean
+  participant_count?: number | null
+  max_capacity?: number | null
 }
 
 interface BookingsListProps {
@@ -168,13 +171,19 @@ export function BookingsList({ bookings, currentUserId, isAdmin }: BookingsListP
                     </div>
 
                     {(booking.treatment_name || booking.expert_name) && (
-                      <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                        <Stethoscope className="h-3.5 w-3.5" />
-                        <span>
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground flex-wrap">
+                        <span className="flex items-center gap-1">
+                          <Stethoscope className="h-3.5 w-3.5" />
                           {booking.treatment_name}
                           {booking.treatment_name && booking.expert_name && ' · '}
                           {booking.expert_name}
                         </span>
+                        {booking.is_group && booking.participant_count != null && booking.max_capacity && (
+                          <Badge variant="secondary" className="text-xs flex items-center gap-1">
+                            <Users className="h-3 w-3" />
+                            {parseInt(String(booking.participant_count))}/{booking.max_capacity} participantes
+                          </Badge>
+                        )}
                       </div>
                     )}
 

@@ -14,8 +14,13 @@ async function getBookings(businessId: string, accountHolderId: string, isAdmin:
         b.id, b.date::text as date, b.start_time::text as start_time, b.end_time::text as end_time, b.status,
         c.name as client_name, c.phone as client_phone, c.email as client_email,
         b.notes, ah.name as created_by_name,
-        t.name as treatment_name,
-        expert.name as expert_name, b.expert_id
+        t.name as treatment_name, COALESCE(t.is_group, false) as is_group, t.max_capacity,
+        expert.name as expert_name, b.expert_id,
+        CASE WHEN COALESCE(t.is_group, false) THEN (
+          SELECT COUNT(*) FROM bookings b2
+          WHERE b2.treatment_id = b.treatment_id AND b2.date = b.date
+            AND b2.start_time = b.start_time AND b2.status IN ('confirmed', 'pending_verification')
+        ) ELSE NULL END as participant_count
       FROM bookings b
       JOIN clients c ON b.client_id = c.id
       LEFT JOIN account_holders ah ON b.created_by_account_holder_id = ah.id
@@ -42,7 +47,13 @@ async function getBookings(businessId: string, accountHolderId: string, isAdmin:
         THEN ah.name ELSE NULL END as created_by_name,
       CASE WHEN b.expert_id IS NULL OR b.expert_id = ${accountHolderId}::uuid
         THEN t.name ELSE NULL END as treatment_name,
-      expert.name as expert_name, b.expert_id
+      COALESCE(t.is_group, false) as is_group, t.max_capacity,
+      expert.name as expert_name, b.expert_id,
+      CASE WHEN COALESCE(t.is_group, false) THEN (
+        SELECT COUNT(*) FROM bookings b2
+        WHERE b2.treatment_id = b.treatment_id AND b2.date = b.date
+          AND b2.start_time = b.start_time AND b2.status IN ('confirmed', 'pending_verification')
+      ) ELSE NULL END as participant_count
     FROM bookings b
     JOIN clients c ON b.client_id = c.id
     LEFT JOIN account_holders ah ON b.created_by_account_holder_id = ah.id
