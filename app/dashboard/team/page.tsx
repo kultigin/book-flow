@@ -12,9 +12,13 @@ async function getTeamWithTreatments(businessId: string) {
           ORDER BY t.name
         ) FILTER (WHERE t.id IS NOT NULL),
         '[]'::json
-      ) as treatments
+      ) as treatments,
+      COUNT(b.id) as upcoming_bookings_count
     FROM account_holders ah
     LEFT JOIN treatments t ON t.expert_id = ah.id AND t.is_active = true
+    LEFT JOIN bookings b ON b.expert_id = ah.id
+      AND b.date >= CURRENT_DATE
+      AND b.status IN ('confirmed', 'pending_verification')
     WHERE ah.business_id = ${businessId}
     GROUP BY ah.id, ah.name, ah.email, ah.role, ah.slug, ah.bio, ah.is_active, ah.created_at
     ORDER BY ah.role, ah.name

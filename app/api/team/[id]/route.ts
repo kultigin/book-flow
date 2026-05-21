@@ -101,15 +101,41 @@ export async function DELETE(
       return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
     }
 
-    // Delete member
+    // Block deletion if there are upcoming confirmed/pending bookings
+    const upcomingBookings = await sql`
+      SELECT COUNT(*) as count FROM bookings
+      WHERE expert_id = ${id}
+        AND date >= CURRENT_DATE
+        AND status IN ('confirmed', 'pending_verification')
+    `
+
+    if (parseInt(upcomingBookings[0].count) > 0) {
+      return NextResponse.json(
+        { error: 'No se puede eliminar un miembro con reservas pendientes' },
+        { status: 400 }
+      )
+    }
+
+    // Null out treatment_id for ALL bookings referencing this expert's treatments
+    await sql`
+      UPDATE bookings SET treatment_id = NULL
+      WHERE treatment_id IN (SELECT id FROM treatments WHERE expert_id = ${id})
+    `
+    // Null out expert_id for all bookings assigned to this expert
+    await sql`UPDATE bookings SET expert_id = NULL WHERE expert_id = ${id}`
+    // Delete treatments (FK deps cleared)
+    await sql`DELETE FROM treatments WHERE expert_id = ${id}`
+    // Delete availability and blocked date records
+    await sql`DELETE FROM expert_availability WHERE expert_id = ${id}`
+    await sql`DELETE FROM expert_blocked_dates WHERE expert_id = ${id}`
+
+    // Delete member (sessions cascade automatically via ON DELETE CASCADE)
     await sql`DELETE FROM account_holders WHERE id = ${id}`
 
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('[Team] Delete error:', error)
-    return NextResponse.json(
-      { error: 'Error interno del servidor' },
-      { status: 500 }
-    )
+    const message = error instanceof Error ? error.message : 'Error interno del servidor'
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }

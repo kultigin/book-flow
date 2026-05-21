@@ -53,6 +53,7 @@ interface TeamMember {
   is_active: boolean
   created_at: string
   treatments: Treatment[]
+  upcoming_bookings_count: number
 }
 
 interface TeamManagerProps {
@@ -82,6 +83,8 @@ export function TeamManager({ businessId, initialMembers, currentUserId }: TeamM
   const [pendingDelete, setPendingDelete] = useState<TeamMember | null>(null)
   const [addError, setAddError] = useState('')
   const [editError, setEditError] = useState('')
+  const [deleteError, setDeleteError] = useState('')
+  const [isDeletingId, setIsDeletingId] = useState<string | null>(null)
 
   const [addForm, setAddForm] = useState(emptyAddForm)
   const [editForm, setEditForm] = useState({
@@ -182,14 +185,23 @@ export function TeamManager({ businessId, initialMembers, currentUserId }: TeamM
   }
 
   async function handleDelete(memberId: string) {
+    setIsDeletingId(memberId)
     try {
       const res = await fetch(`/api/team/${memberId}`, { method: 'DELETE' })
+      const data = await res.json()
       if (res.ok) {
         setMembers(prev => prev.filter(m => m.id !== memberId))
+        setPendingDelete(null)
+        setDeleteError('')
         router.refresh()
+      } else {
+        setDeleteError(data.error || 'Error al eliminar miembro')
       }
     } catch (err) {
       console.error('Delete error:', err)
+      setDeleteError('Error de conexion')
+    } finally {
+      setIsDeletingId(null)
     }
   }
 
@@ -343,7 +355,7 @@ export function TeamManager({ businessId, initialMembers, currentUserId }: TeamM
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => setPendingDelete(member)}
+                      onClick={() => { setPendingDelete(member); setDeleteError('') }}
                       className="text-destructive hover:text-destructive"
                     >
                       <Trash2 className="h-4 w-4" />
@@ -466,20 +478,35 @@ export function TeamManager({ businessId, initialMembers, currentUserId }: TeamM
         </DialogContent>
       </Dialog>
 
-      <AlertDialog open={!!pendingDelete} onOpenChange={(open) => { if (!open) setPendingDelete(null) }}>
+      <AlertDialog open={!!pendingDelete} onOpenChange={(open) => { if (!open) { setPendingDelete(null); setDeleteError('') } }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Eliminar miembro</AlertDialogTitle>
             <AlertDialogDescription>
-              Estas seguro de que quieres eliminar a <strong>{pendingDelete?.name}</strong>? Se eliminara su cuenta y no podra acceder al panel.
+              {pendingDelete && pendingDelete.upcoming_bookings_count > 0
+                ? <>
+                    <strong>{pendingDelete.name}</strong> tiene{' '}
+                    <strong>{parseInt(String(pendingDelete.upcoming_bookings_count))} reserva{parseInt(String(pendingDelete.upcoming_bookings_count)) !== 1 ? 's' : ''} pendiente{parseInt(String(pendingDelete.upcoming_bookings_count)) !== 1 ? 's' : ''}</strong>.
+                    Cancela o reasigna las reservas antes de eliminar este miembro.
+                  </>
+                : <>
+                    ¿Estás seguro de que quieres eliminar a <strong>{pendingDelete?.name}</strong>? Se eliminará su cuenta y no podrá acceder al panel.
+                  </>
+              }
             </AlertDialogDescription>
           </AlertDialogHeader>
+          {deleteError && <p className="text-sm text-destructive">{deleteError}</p>}
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={() => { if (pendingDelete) { handleDelete(pendingDelete.id); setPendingDelete(null) } }}
+              disabled={
+                parseInt(String(pendingDelete?.upcoming_bookings_count ?? 0)) > 0 ||
+                isDeletingId === pendingDelete?.id
+              }
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={() => { if (pendingDelete) { setDeleteError(''); handleDelete(pendingDelete.id) } }}
             >
+              {isDeletingId === pendingDelete?.id ? <Spinner className="mr-2 h-4 w-4" /> : null}
               Eliminar
             </AlertDialogAction>
           </AlertDialogFooter>
