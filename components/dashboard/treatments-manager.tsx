@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
+import { cn } from '@/lib/utils'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -333,18 +334,41 @@ export function TreatmentsManager({ initialTreatments, experts, currentUserId, i
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
             <FieldGroup>
-              {/* Session type toggle */}
-              <div className="flex items-center justify-between rounded-lg border p-3">
-                <div>
-                  <p className="text-sm font-medium">{formData.is_group ? 'Sesión grupal' : 'Sesión individual'}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {formData.is_group ? 'Horario fijo, múltiples participantes' : 'Reserva por hora, un cliente'}
-                  </p>
-                </div>
-                <Switch
-                  checked={formData.is_group}
-                  onCheckedChange={(v) => setFormData(p => ({ ...p, is_group: v }))}
-                />
+              {/* Session type */}
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { value: false, label: 'Individual', desc: 'Un cliente por hora' },
+                  { value: true,  label: 'Grupal',     desc: 'Horario fijo, varios' },
+                ].map(({ value, label, desc }) => (
+                  <label
+                    key={String(value)}
+                    className={cn(
+                      'flex cursor-pointer flex-col gap-1.5 rounded-lg border-2 p-3 transition-colors',
+                      formData.is_group === value
+                        ? 'border-primary bg-primary/5'
+                        : 'border-border hover:border-muted-foreground/40'
+                    )}
+                  >
+                    <input
+                      type="radio"
+                      className="sr-only"
+                      checked={formData.is_group === value}
+                      onChange={() => setFormData(p => ({ ...p, is_group: value }))}
+                    />
+                    <div className="flex items-center gap-2">
+                      <span className={cn(
+                        'flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2',
+                        formData.is_group === value ? 'border-primary' : 'border-muted-foreground/40'
+                      )}>
+                        {formData.is_group === value && (
+                          <span className="h-2 w-2 rounded-full bg-primary" />
+                        )}
+                      </span>
+                      <span className="text-sm font-medium">{label}</span>
+                    </div>
+                    <p className="pl-6 text-xs text-muted-foreground">{desc}</p>
+                  </label>
+                ))}
               </div>
 
               <Field>
