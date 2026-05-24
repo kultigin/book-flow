@@ -1,16 +1,24 @@
 import { requireAuth } from '@/lib/auth'
 import { headers } from 'next/headers'
+import { sql } from '@/lib/db'
 import { ChangePasswordForm } from '@/components/dashboard/change-password-form'
+import { ProfileForm } from '@/components/dashboard/profile-form'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { ExternalLink, Link2, UserCircle } from 'lucide-react'
+import { UserCircle } from 'lucide-react'
+
+export const dynamic = 'force-dynamic'
 
 export default async function ProfilePage() {
   const { accountHolder } = await requireAuth()
   const headersList = await headers()
   const host = headersList.get('host') || 'localhost:3000'
   const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http'
-  const bookingUrl = accountHolder.slug ? `${protocol}://${host}/book/${accountHolder.slug}` : null
+
+  const rows = await sql`
+    SELECT avatar_url FROM account_holders WHERE id = ${accountHolder.id}
+  `
+  const hasAvatar = !!rows[0]?.avatar_url
 
   return (
     <div className="space-y-6 max-w-2xl">
@@ -45,31 +53,24 @@ export default async function ProfilePage() {
         </CardContent>
       </Card>
 
-      {/* Booking link */}
+      {/* Avatar + slug editing */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Link2 className="h-5 w-5" />
-            Enlace de reservas
+            <UserCircle className="h-5 w-5" />
+            Foto y enlace de reservas
           </CardTitle>
-          <CardDescription>Tu página pública donde los clientes pueden reservar</CardDescription>
+          <CardDescription>Tu foto de perfil y enlace público para que los clientes reserven</CardDescription>
         </CardHeader>
         <CardContent>
-          {bookingUrl ? (
-            <a
-              href={bookingUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2 rounded-lg border px-4 py-3 text-sm font-mono text-primary hover:bg-primary/5 transition-colors break-all"
-            >
-              <ExternalLink className="h-4 w-4 shrink-0 text-muted-foreground" />
-              {bookingUrl}
-            </a>
-          ) : (
-            <p className="text-sm text-muted-foreground">
-              No tienes un enlace de reservas configurado. Pide a tu administrador que añada un slug a tu perfil en la sección de Equipo.
-            </p>
-          )}
+          <ProfileForm
+            accountHolderId={accountHolder.id}
+            name={accountHolder.name}
+            currentSlug={accountHolder.slug}
+            hasAvatar={hasAvatar}
+            host={host}
+            protocol={protocol}
+          />
         </CardContent>
       </Card>
 

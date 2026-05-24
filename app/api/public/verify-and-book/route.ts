@@ -31,15 +31,23 @@ export async function POST(request: NextRequest) {
     let slotDuration = 30
     let isGroupSession = false
     let maxCapacity = 0
+    let treatmentName: string | null = null
+    let expertName: string | null = null
 
     if (treatmentId) {
       const treatment = await sql`
-        SELECT duration_minutes, is_group, max_capacity FROM treatments WHERE id = ${treatmentId}
+        SELECT t.duration_minutes, t.is_group, t.max_capacity, t.name as treatment_name,
+               ah.name as expert_name
+        FROM treatments t
+        LEFT JOIN account_holders ah ON ah.id = ${expertId || null}::uuid
+        WHERE t.id = ${treatmentId}
       `
       if (treatment.length > 0) {
         slotDuration = treatment[0].duration_minutes
         isGroupSession = treatment[0].is_group ?? false
         maxCapacity = treatment[0].max_capacity ?? 0
+        treatmentName = treatment[0].treatment_name
+        expertName = treatment[0].expert_name
       }
     }
 
@@ -121,12 +129,19 @@ export async function POST(request: NextRequest) {
       weekday: 'long', day: 'numeric', month: 'long',
     })
 
+    const host = request.headers.get('host') || 'localhost:3000'
+    const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http'
+    const cancelUrl = `${protocol}://${host}/cancel/${booking[0].id}`
+
     await sendBookingConfirmation(
       clientPhone,
       business?.name || 'Nuestro negocio',
       formattedDate,
       slotTime,
-      booking[0].id
+      booking[0].id,
+      treatmentName,
+      expertName,
+      cancelUrl
     )
 
     return NextResponse.json({ booking: booking[0] })

@@ -26,9 +26,12 @@ async function getDashboardData(businessId: string, accountHolderId: string, isA
     isAdmin
       ? sql`
           SELECT b.id, b.date::text, b.start_time::text, b.end_time::text, b.status,
-            c.name as client_name, c.phone as client_phone
+            c.name as client_name, c.phone as client_phone,
+            t.name as treatment_name, ah.name as expert_name
           FROM bookings b
           JOIN clients c ON b.client_id = c.id
+          LEFT JOIN treatments t ON b.treatment_id = t.id
+          LEFT JOIN account_holders ah ON b.expert_id = ah.id
           WHERE b.business_id = ${businessId}
             AND (b.date > ${today} OR (b.date = ${today} AND b.end_time::text > NOW()::time::text))
             AND b.status IN ('confirmed', 'pending')
@@ -37,9 +40,12 @@ async function getDashboardData(businessId: string, accountHolderId: string, isA
         `
       : sql`
           SELECT b.id, b.date::text, b.start_time::text, b.end_time::text, b.status,
-            c.name as client_name, c.phone as client_phone
+            c.name as client_name, c.phone as client_phone,
+            t.name as treatment_name, ah.name as expert_name
           FROM bookings b
           JOIN clients c ON b.client_id = c.id
+          LEFT JOIN treatments t ON b.treatment_id = t.id
+          LEFT JOIN account_holders ah ON b.expert_id = ah.id
           WHERE b.business_id = ${businessId}
             AND (b.expert_id IS NULL OR b.expert_id = ${accountHolderId}::uuid)
             AND (b.date > ${today} OR (b.date = ${today} AND b.end_time::text > NOW()::time::text))

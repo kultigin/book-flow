@@ -134,15 +134,20 @@ export async function verifyCode(phone: string, code: string): Promise<boolean> 
 }
 
 export async function sendBookingConfirmation(
-  phone: string, 
-  businessName: string, 
-  date: string, 
+  phone: string,
+  businessName: string,
+  date: string,
   time: string,
-  bookingId: string
+  bookingId: string,
+  treatmentName?: string | null,
+  expertName?: string | null,
+  cancelUrl?: string
 ): Promise<void> {
+  const sessionPart = treatmentName ? `${treatmentName}${expertName ? ` con ${expertName}` : ''}` : businessName
+  const cancelPart = cancelUrl ? ` Para cancelar: ${cancelUrl}` : ''
   await sendSms({
     to: phone,
-    message: `Reserva confirmada en ${businessName} para el ${date} a las ${time}. Para cancelar, visita el enlace en tu confirmacion.`,
+    message: `Reserva confirmada: ${sessionPart} el ${date} a las ${time}.${cancelPart}`,
     type: 'booking_confirmation',
     bookingId
   })
@@ -153,11 +158,16 @@ export async function sendStaffCreatedBookingNotification(
   businessName: string,
   date: string,
   time: string,
-  bookingId: string
+  bookingId: string,
+  treatmentName?: string | null,
+  expertName?: string | null,
+  cancelUrl?: string
 ): Promise<void> {
+  const sessionPart = treatmentName ? `${treatmentName}${expertName ? ` con ${expertName}` : ''}` : businessName
+  const cancelPart = cancelUrl ? ` Para cancelar: ${cancelUrl}` : ''
   await sendSms({
     to: phone,
-    message: `${businessName} ha creado una reserva para ti el ${date} a las ${time}. Te enviaremos un recordatorio.`,
+    message: `${businessName} ha creado una reserva para ti: ${sessionPart} el ${date} a las ${time}.${cancelPart}`,
     type: 'booking_created_by_staff',
     bookingId
   })

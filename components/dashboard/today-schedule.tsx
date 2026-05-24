@@ -3,7 +3,7 @@ import { sql } from '@/lib/db'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription } from '@/components/ui/empty'
-import { Clock, Phone, User } from 'lucide-react'
+import { Clock, Phone, Stethoscope, User } from 'lucide-react'
 
 interface TodayScheduleProps {
   businessId: string
@@ -18,9 +18,10 @@ async function getTodayBookings(businessId: string, accountHolderId: string, isA
     return sql`
       SELECT b.id, b.start_time::text, b.end_time::text, b.status,
         c.name as client_name, c.phone as client_phone,
-        expert.name as expert_name
+        t.name as treatment_name, expert.name as expert_name
       FROM bookings b
       JOIN clients c ON b.client_id = c.id
+      LEFT JOIN treatments t ON b.treatment_id = t.id
       LEFT JOIN account_holders expert ON b.expert_id = expert.id
       WHERE b.business_id = ${businessId}
         AND b.date = ${today}
@@ -35,9 +36,10 @@ async function getTodayBookings(businessId: string, accountHolderId: string, isA
         THEN c.name ELSE 'Reservado' END as client_name,
       CASE WHEN b.expert_id IS NULL OR b.expert_id = ${accountHolderId}::uuid
         THEN c.phone ELSE NULL END as client_phone,
-      expert.name as expert_name
+      t.name as treatment_name, expert.name as expert_name
     FROM bookings b
     JOIN clients c ON b.client_id = c.id
+    LEFT JOIN treatments t ON b.treatment_id = t.id
     LEFT JOIN account_holders expert ON b.expert_id = expert.id
     WHERE b.business_id = ${businessId}
       AND b.date = ${today}
@@ -109,10 +111,18 @@ export async function TodaySchedule({ businessId, accountHolderId, isAdmin }: To
                       <User className="h-4 w-4 text-muted-foreground shrink-0" />
                       <span className="font-medium truncate">{booking.client_name}</span>
                     </div>
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Phone className="h-3.5 w-3.5 shrink-0" />
-                      <span className="truncate">{booking.client_phone}</span>
-                    </div>
+                    {booking.treatment_name && (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Stethoscope className="h-3.5 w-3.5 shrink-0" />
+                        <span className="truncate">{booking.treatment_name}</span>
+                      </div>
+                    )}
+                    {booking.client_phone && (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Phone className="h-3.5 w-3.5 shrink-0" />
+                        <span className="truncate">{booking.client_phone}</span>
+                      </div>
+                    )}
                   </div>
                   {isPast ? (
                     <Badge variant="outline">Pasada</Badge>

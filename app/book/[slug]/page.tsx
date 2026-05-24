@@ -1,11 +1,13 @@
+export const dynamic = 'force-dynamic'
+
 import { notFound } from 'next/navigation'
 import { sql } from '@/lib/db'
 import { PublicBookingForm } from '@/components/public/booking-form'
-import { UserCircle } from 'lucide-react'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 
 async function getExpertData(slug: string) {
   const experts = await sql`
-    SELECT ah.id, ah.name, ah.bio, ah.slug, ah.business_id,
+    SELECT ah.id, ah.name, ah.bio, ah.slug, ah.business_id, ah.avatar_url,
            b.name as business_name
     FROM account_holders ah
     JOIN businesses b ON b.id = ah.business_id
@@ -59,8 +61,13 @@ export default async function ExpertBookingPage({
     <div className="min-h-screen bg-muted/30">
       <div className="mx-auto max-w-lg px-4 py-8">
         <div className="mb-6 flex flex-col items-center text-center">
-          <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-primary/10 text-primary">
-            <UserCircle className="h-10 w-10" />
+          <div className="mb-4">
+            <Avatar className="h-20 w-20">
+              {expert.avatar_url && <AvatarImage src={`/api/public/avatar/${expert.id}`} alt={expert.name} />}
+              <AvatarFallback className="text-2xl bg-primary/10 text-primary">
+                {expert.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
           </div>
           <h1 className="text-2xl font-bold">{expert.name}</h1>
           <p className="text-sm text-muted-foreground mt-1">{expert.business_name}</p>

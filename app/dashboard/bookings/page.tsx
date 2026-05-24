@@ -46,8 +46,7 @@ async function getBookings(businessId: string, accountHolderId: string, isAdmin:
         THEN b.notes ELSE NULL END as notes,
       CASE WHEN b.expert_id IS NULL OR b.expert_id = ${accountHolderId}::uuid
         THEN ah.name ELSE NULL END as created_by_name,
-      CASE WHEN b.expert_id IS NULL OR b.expert_id = ${accountHolderId}::uuid
-        THEN t.name ELSE NULL END as treatment_name,
+      t.name as treatment_name,
       COALESCE(t.is_group, false) as is_group, t.max_capacity,
       expert.name as expert_name, b.expert_id,
       CASE WHEN COALESCE(t.is_group, false) THEN (

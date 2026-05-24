@@ -32,14 +32,21 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Get treatment duration for end time calculation
+    // Get treatment duration, name and expert name
     let slotDuration = 30
+    let treatmentName: string | null = null
+    let expertName: string | null = null
     if (treatmentId) {
       const treatment = await sql`
-        SELECT duration_minutes FROM treatments WHERE id = ${treatmentId} AND business_id = ${businessId}
+        SELECT t.duration_minutes, t.name as treatment_name, ah.name as expert_name
+        FROM treatments t
+        LEFT JOIN account_holders ah ON ah.id = ${expertId || null}::uuid
+        WHERE t.id = ${treatmentId} AND t.business_id = ${businessId}
       `
       if (treatment.length > 0) {
         slotDuration = treatment[0].duration_minutes
+        treatmentName = treatment[0].treatment_name
+        expertName = treatment[0].expert_name
       }
     }
 
@@ -116,13 +123,19 @@ export async function POST(request: NextRequest) {
       month: 'long',
     })
 
+    const host = request.headers.get('host') || 'localhost:3000'
+    const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http'
+    const cancelUrl = `${protocol}://${host}/cancel/${booking[0].id}`
+
     if (skipVerification) {
       await sendStaffCreatedBookingNotification(
-        clientPhone, businessName, formattedDate, slotTime, booking[0].id
+        clientPhone, businessName, formattedDate, slotTime, booking[0].id,
+        treatmentName, expertName, cancelUrl
       )
     } else {
       await sendBookingConfirmation(
-        clientPhone, businessName, formattedDate, slotTime, booking[0].id
+        clientPhone, businessName, formattedDate, slotTime, booking[0].id,
+        treatmentName, expertName, cancelUrl
       )
     }
 
