@@ -9,6 +9,7 @@ export interface AccountHolder {
   email: string
   name: string
   role: 'admin' | 'staff'
+  slug: string | null
   created_at: string
 }
 
@@ -67,7 +68,7 @@ export async function getSession(): Promise<{ session: Session; accountHolder: A
   if (!sessionId) return null
   
   const result = await sql`
-    SELECT 
+    SELECT
       s.token as session_token,
       s.expires_at,
       ah.id,
@@ -75,6 +76,7 @@ export async function getSession(): Promise<{ session: Session; accountHolder: A
       ah.email,
       ah.name,
       ah.role,
+      ah.slug,
       ah.created_at
     FROM sessions s
     JOIN account_holders ah ON s.account_holder_id = ah.id
@@ -97,6 +99,7 @@ export async function getSession(): Promise<{ session: Session; accountHolder: A
       email: row.email,
       name: row.name,
       role: row.role,
+      slug: row.slug ?? null,
       created_at: String(row.created_at)
     }
   }

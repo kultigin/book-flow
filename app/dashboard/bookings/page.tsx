@@ -1,11 +1,12 @@
 export const dynamic = 'force-dynamic'
 
 import { requireAuth } from '@/lib/auth'
+import { headers } from 'next/headers'
 import { sql } from '@/lib/db'
 import { BookingsList } from '@/components/dashboard/bookings-list'
 import { CreateBookingDialog } from '@/components/dashboard/create-booking-dialog'
 import { Button } from '@/components/ui/button'
-import { Plus } from 'lucide-react'
+import { ExternalLink, Plus } from 'lucide-react'
 
 async function getBookings(businessId: string, accountHolderId: string, isAdmin: boolean) {
   if (isAdmin) {
@@ -85,6 +86,11 @@ async function getTreatments(businessId: string) {
 export default async function BookingsPage() {
   const { accountHolder } = await requireAuth()
   const isAdmin = accountHolder.role === 'admin'
+  const headersList = await headers()
+  const host = headersList.get('host') || 'localhost:3000'
+  const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http'
+  const bookingUrl = accountHolder.slug ? `${protocol}://${host}/book/${accountHolder.slug}` : null
+
   const [bookings, experts, treatments] = await Promise.all([
     getBookings(accountHolder.business_id, accountHolder.id, isAdmin),
     getExperts(accountHolder.business_id),
@@ -97,6 +103,17 @@ export default async function BookingsPage() {
         <div>
           <h1 className="text-2xl font-bold text-foreground">Reservas</h1>
           <p className="text-muted-foreground">Gestiona todas las reservas de tu negocio</p>
+          {bookingUrl && (
+            <a
+              href={bookingUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-1 inline-flex items-center gap-1.5 text-sm text-primary hover:underline"
+            >
+              <ExternalLink className="h-3.5 w-3.5" />
+              {bookingUrl}
+            </a>
+          )}
         </div>
         <CreateBookingDialog
           businessId={accountHolder.business_id}
